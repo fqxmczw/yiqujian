@@ -3,6 +3,7 @@ package com.express.pickup;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -25,10 +26,13 @@ import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
+
+import java.util.Locale;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -97,6 +101,17 @@ public final class MainActivity extends Activity {
             settings.setForceDark(WebSettings.FORCE_DARK_OFF);
         }
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                if (request == null || request.getUrl() == null) return false;
+                String url = request.getUrl().toString();
+                if (url.startsWith("http://") || url.startsWith("https://")) {
+                    openExternalUri(url, true);
+                    return true;
+                }
+                return false;
+            }
+
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
@@ -616,6 +631,48 @@ public final class MainActivity extends Activity {
                             + JSONObject.quote(text) + ", " + explicit + ")");
                 }
             });
+        }
+
+        @JavascriptInterface
+        public boolean openApp(final String uri) {
+            return openExternalUri(uri, false);
+        }
+
+        @JavascriptInterface
+        public boolean openWeb(final String url) {
+            return openExternalUri(url, true);
+        }
+    }
+
+    private boolean openExternalUri(String rawUri, boolean httpOnly) {
+        if (rawUri == null) return false;
+        String trimmed = rawUri.trim();
+        if (trimmed.isEmpty()) return false;
+        try {
+            Uri parsed = Uri.parse(trimmed);
+            String scheme = parsed.getScheme();
+            if (scheme == null || scheme.isEmpty()) return false;
+            String lower = scheme.toLowerCase(Locale.ROOT);
+            if ("javascript".equals(lower) || "file".equals(lower)
+                    || "content".equals(lower) || "data".equals(lower)
+                    || "android-app".equals(lower)) {
+                return false;
+            }
+            if (httpOnly && !"http".equals(lower) && !"https".equals(lower)) {
+                return false;
+            }
+            Intent intent = new Intent(Intent.ACTION_VIEW, parsed);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            if (intent.resolveActivity(getPackageManager()) != null) {
+                startActivity(intent);
+                return true;
+            }
+            startActivity(intent);
+            return true;
+        } catch (ActivityNotFoundException | SecurityException ignored) {
+            return false;
+        } catch (Throwable ignored) {
+            return false;
         }
     }
 }

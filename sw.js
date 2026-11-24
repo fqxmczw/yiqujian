@@ -1,4 +1,4 @@
-const CACHE_NAME = 'express-pickup-v6';
+const CACHE_NAME = 'express-pickup-v7';
 const APP_FILES = ['./', './index.html', './styles.css', './barcode.js', './parser.js', './app.js', './manifest.webmanifest', './assets/pickup-lockers.png', './assets/app-icon.svg', './assets/app-icon.png', './assets/app-icon-512.png'];
 
 self.addEventListener('install', event => {

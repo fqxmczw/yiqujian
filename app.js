@@ -8,6 +8,108 @@
   const CLIPBOARD_SUPPRESS_MS = 7 * 86400000;
   const CLOCK_SKEW_MS = 60 * 1000;
   const EXCLUSIVE_STORAGE_KEY = 'exclusiveCodes.v1';
+  const PLATFORM_ORDER_KEY = 'expressPlatformOrder.v1';
+
+  const TB_IDENTITY_H5 = 'https://pages-fast.m.taobao.com/wow/z/uniapp/1011717/last-mile-fe/end-collect-platform/identity-code?x-ssr=true';
+  const TB_PENDING_H5 = 'https://pages-fast.m.taobao.com/wow/z/uniapp/1100333/last-mile-fe/m-end-school-tab/home';
+  const KS_ORDER_H5 = 'https://app.kwaixiaodian.com/page/kwaishop-trade-order-list-app?layoutType=4&hyId=kwaishopOrder';
+
+  const PLATFORM_ENTRIES = {
+    identity: [
+      {
+        id: 'taobao-code',
+        short: '淘宝',
+        name: '淘宝身份码',
+        brand: 'taobao',
+        glyph: '淘',
+        uri: `tbopen://m.taobao.com/tbopen/index.html?h5Url=${encodeURIComponent(TB_IDENTITY_H5)}`,
+        web: TB_IDENTITY_H5,
+        toast: '已打开淘宝身份码'
+      },
+      {
+        id: 'pdd-code',
+        short: '拼多多',
+        name: '拼多多身份码',
+        brand: 'pinduoduo',
+        glyph: '拼',
+        uri: 'pinduoduo://com.xunmeng.pinduoduo/mdkd/package?tab=ID_CODE&entry_source=11',
+        web: 'https://m.pinduoduo.net/mdkd/package?entry_source=18&extra_params=from_wx_jump%3D1&p_channel=0',
+        toast: '已打开多多驿站身份码'
+      },
+      {
+        id: 'jd-code',
+        short: '京东',
+        name: '京东身份码',
+        brand: 'jd',
+        glyph: '京',
+        uri: 'openapp.jdmobile://virtual?params=%7B%22category%22%3A%22jump%22%2C%22des%22%3A%22myJd%22%7D',
+        web: 'https://m.jd.com',
+        toast: '已打开京东，身份码在“我的”里'
+      }
+    ],
+    pickup: [
+      {
+        id: 'taobao-query',
+        short: '淘宝',
+        name: '淘宝待取',
+        brand: 'taobao',
+        glyph: '淘',
+        uri: `tbopen://m.taobao.com/tbopen/index.html?h5Url=${encodeURIComponent(TB_PENDING_H5)}`,
+        web: TB_PENDING_H5,
+        toast: '已打开淘宝待取列表，下拉可刷新'
+      },
+      {
+        id: 'pdd-query',
+        short: '拼多多',
+        name: '拼多多待取',
+        brand: 'pinduoduo',
+        glyph: '拼',
+        uri: 'pinduoduo://com.xunmeng.pinduoduo/mdkd/package',
+        web: 'https://m.pinduoduo.net/mdkd/package?entry_source=18&extra_params=from_wx_jump%3D1&p_channel=0',
+        toast: '已打开多多驿站包裹列表'
+      },
+      {
+        id: 'jd-query',
+        short: '京东',
+        name: '京东待取',
+        brand: 'jd',
+        glyph: '京',
+        uri: 'openjd://virtual?params=%7B%22category%22%3A%22jump%22%2C%22des%22%3A%22orderlist%22%7D',
+        web: 'https://order.jd.com/center/list.action',
+        toast: '已打开京东订单，点开订单可查看取件码'
+      },
+      {
+        id: 'douyin-query',
+        short: '抖音',
+        name: '抖音待取',
+        brand: 'douyin',
+        glyph: '抖',
+        uri: 'snssdk1128://ecom_order_list',
+        web: '',
+        toast: '已打开抖音订单列表，可看待收货与物流'
+      },
+      {
+        id: 'ks-query',
+        short: '快手',
+        name: '快手待取',
+        brand: 'kuaishou',
+        glyph: '快',
+        uri: `kwai://webview?url=${encodeURIComponent(KS_ORDER_H5)}`,
+        web: KS_ORDER_H5,
+        toast: '已打开快手小店订单列表'
+      },
+      {
+        id: 'dewu-query',
+        short: '得物',
+        name: '得物待取',
+        brand: 'dewu',
+        glyph: '得',
+        uri: '9dewuapp://m.dewu.com/router/order/buyer/orderList?tabId=0',
+        web: 'https://m.dewu.com/',
+        toast: '已打开得物订单列表'
+      }
+    ]
+  };
 
   const $ = selector => document.querySelector(selector);
   const callBridge = (method, ...args) => (
@@ -1690,8 +1792,209 @@
     return true;
   };
 
+  function loadPlatformOrder() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(PLATFORM_ORDER_KEY) || '{}');
+      return {
+        identity: Array.isArray(parsed.identity) ? parsed.identity.filter(id => typeof id === 'string') : [],
+        pickup: Array.isArray(parsed.pickup) ? parsed.pickup.filter(id => typeof id === 'string') : []
+      };
+    } catch {
+      return { identity: [], pickup: [] };
+    }
+  }
+
+  let platformOrder = loadPlatformOrder();
+  let platformHoldTimer = null;
+  let platformDragState = null;
+  let suppressPlatformClick = false;
+
+  function savePlatformOrder() {
+    try {
+      localStorage.setItem(PLATFORM_ORDER_KEY, JSON.stringify(platformOrder));
+    } catch { /* Ignore storage quota errors. */ }
+  }
+
+  function getOrderedPlatformEntries(group) {
+    const base = PLATFORM_ENTRIES[group] || [];
+    const ids = platformOrder[group] || [];
+    const byId = new Map(base.map(entry => [entry.id, entry]));
+    const ordered = [];
+    for (const id of ids) {
+      const hit = byId.get(id);
+      if (hit && !ordered.includes(hit)) ordered.push(hit);
+    }
+    for (const entry of base) {
+      if (!ordered.includes(entry)) ordered.push(entry);
+    }
+    return ordered;
+  }
+
+  function openPlatformEntry(entry) {
+    const hasNativeOpen = Boolean(window.AndroidApp && typeof window.AndroidApp.openApp === 'function');
+    if (hasNativeOpen) {
+      let opened = false;
+      try { opened = Boolean(window.AndroidApp.openApp(entry.uri)); } catch { opened = false; }
+      if (opened) {
+        showToast(entry.toast);
+        return;
+      }
+      if (entry.web) {
+        let webOpened = false;
+        try {
+          if (typeof window.AndroidApp.openWeb === 'function') {
+            webOpened = Boolean(window.AndroidApp.openWeb(entry.web));
+          }
+        } catch { webOpened = false; }
+        if (webOpened) {
+          showToast(`未检测到${entry.short}客户端，已改用浏览器打开`);
+          return;
+        }
+      }
+      showToast(`未检测到${entry.short}客户端，请先安装后再打开`, false);
+      return;
+    }
+
+    if (entry.web) {
+      try { window.open(entry.web, '_blank', 'noopener,noreferrer'); } catch { /* Ignore popup blockers. */ }
+      showToast(`已在浏览器打开${entry.name}`);
+      return;
+    }
+    showToast(`${entry.short}待取请在安卓客户端内一键跳转`, false);
+  }
+
+  function syncPlatformOrderFromDom(group, grid) {
+    platformOrder[group] = [...grid.querySelectorAll('.platform-tile')].map(el => el.dataset.entryId).filter(Boolean);
+    savePlatformOrder();
+  }
+
+  function stopPlatformHold() {
+    clearTimeout(platformHoldTimer);
+    platformHoldTimer = null;
+  }
+
+  function handlePlatformDragMove(event) {
+    if (!platformDragState || event.pointerId !== platformDragState.pointerId) return;
+    event.preventDefault();
+    const { tile, grid } = platformDragState;
+    const hit = document.elementFromPoint(event.clientX, event.clientY);
+    const target = hit ? hit.closest('.platform-tile') : null;
+    if (!target || target === tile || target.parentElement !== grid) return;
+    const siblings = [...grid.children];
+    const dragIndex = siblings.indexOf(tile);
+    const targetIndex = siblings.indexOf(target);
+    if (dragIndex < 0 || targetIndex < 0) return;
+    if (dragIndex < targetIndex) grid.insertBefore(tile, target.nextSibling);
+    else grid.insertBefore(tile, target);
+    platformDragState.moved = true;
+  }
+
+  function finishPlatformDrag(event) {
+    if (!platformDragState) return;
+    if (event && event.pointerId !== undefined && event.pointerId !== platformDragState.pointerId) return;
+    const { tile, grid, group, moved } = platformDragState;
+    tile.classList.remove('is-dragging');
+    grid.classList.remove('is-reordering');
+    window.removeEventListener('pointermove', handlePlatformDragMove);
+    window.removeEventListener('pointerup', finishPlatformDrag);
+    window.removeEventListener('pointercancel', finishPlatformDrag);
+    platformDragState = null;
+    if (moved) {
+      syncPlatformOrderFromDom(group, grid);
+      showToast('已更新平台顺序');
+    }
+    setTimeout(() => { suppressPlatformClick = false; }, 0);
+  }
+
+  function attachPlatformTileEvents(tile, entry, group, grid) {
+    let startX = 0;
+    let startY = 0;
+    let activePointerId = null;
+
+    tile.addEventListener('pointerdown', event => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      startX = event.clientX;
+      startY = event.clientY;
+      activePointerId = event.pointerId;
+      stopPlatformHold();
+      platformHoldTimer = setTimeout(() => {
+        platformHoldTimer = null;
+        platformDragState = { tile, grid, group, pointerId: activePointerId, moved: false };
+        suppressPlatformClick = true;
+        tile.classList.add('is-dragging');
+        grid.classList.add('is-reordering');
+        if (navigator.vibrate) {
+          try { navigator.vibrate(10); } catch { /* Optional vibration. */ }
+        }
+        window.addEventListener('pointermove', handlePlatformDragMove, { passive: false });
+        window.addEventListener('pointerup', finishPlatformDrag);
+        window.addEventListener('pointercancel', finishPlatformDrag);
+      }, 420);
+    });
+
+    tile.addEventListener('pointermove', event => {
+      if (platformDragState || !platformHoldTimer || event.pointerId !== activePointerId) return;
+      if (Math.abs(event.clientX - startX) > 8 || Math.abs(event.clientY - startY) > 8) {
+        stopPlatformHold();
+      }
+    });
+
+    tile.addEventListener('pointerup', stopPlatformHold);
+    tile.addEventListener('pointercancel', stopPlatformHold);
+    tile.addEventListener('pointerleave', () => { if (!platformDragState) stopPlatformHold(); });
+    tile.addEventListener('contextmenu', event => event.preventDefault());
+    tile.addEventListener('click', () => {
+      if (suppressPlatformClick) {
+        suppressPlatformClick = false;
+        return;
+      }
+      openPlatformEntry(entry);
+    });
+  }
+
+  function renderPlatformGrid(group, selector) {
+    const grid = document.querySelector(selector);
+    if (!grid) return;
+    grid.innerHTML = '';
+    for (const entry of getOrderedPlatformEntries(group)) {
+      const tile = document.createElement('button');
+      tile.type = 'button';
+      tile.className = 'platform-tile';
+      tile.dataset.entryId = entry.id;
+      tile.dataset.platformGroup = group;
+      tile.setAttribute('aria-label', `${entry.name}，长按可拖动排序`);
+
+      const extSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      extSvg.setAttribute('class', 'platform-tile-ext');
+      extSvg.setAttribute('aria-hidden', 'true');
+      const extUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+      extUse.setAttribute('href', '#icon-external');
+      extSvg.appendChild(extUse);
+
+      const badge = document.createElement('span');
+      badge.className = 'platform-badge';
+      badge.dataset.brand = entry.brand;
+      badge.setAttribute('aria-hidden', 'true');
+      badge.textContent = entry.glyph;
+
+      const name = document.createElement('span');
+      name.className = 'platform-tile-name';
+      name.textContent = entry.name;
+
+      tile.append(extSvg, badge, name);
+      attachPlatformTileEvents(tile, entry, group, grid);
+      grid.appendChild(tile);
+    }
+  }
+
+  function renderPlatformGrids() {
+    renderPlatformGrid('identity', '#platform-identity-grid');
+    renderPlatformGrid('pickup', '#platform-pickup-grid');
+  }
+
   renderExclusivePage();
   renderCodes();
+  renderPlatformGrids();
   switchPage(pageFromHash());
   refreshAutoImportStatus();
   const initialPending = callBridge('drainPendingMessages');

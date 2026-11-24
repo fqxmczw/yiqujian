@@ -488,3 +488,86 @@ test('mark picked-up prevents old SMS resurrection, allows reused shelf codes, a
   await page.locator('#reset-sms-baseline-btn').click();
   await expect(page.locator('#sms-baseline-row')).toBeHidden();
 });
+
+test('platform identity & live pickup shortcuts launch apps, fallback to web, and persist drag order', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__bridgeCalls = [];
+    window.__openAppFailPrefixes = [];
+    window.AndroidApp = {
+      getAutoImportStatus: () => JSON.stringify({
+        isAndroid: true, hasSmsPermission: true, smsAutoSync: true, smsScanDays: 7,
+        smsIgnoreBeforeTs: 0, hasNotificationAccess: true, notifyEnabled: true, notifyCapturedCount: 0
+      }),
+      drainPendingMessages: () => '[]',
+      requestClipboardCheck: () => {},
+      openApp: (uri) => {
+        window.__bridgeCalls.push({ method: 'openApp', arg: uri });
+        return !window.__openAppFailPrefixes.some(prefix => uri.startsWith(prefix));
+      },
+      openWeb: (url) => {
+        window.__bridgeCalls.push({ method: 'openWeb', arg: url });
+        return true;
+      }
+    };
+  });
+
+  await page.goto('/');
+  const identityTiles = page.locator('#platform-identity-grid .platform-tile');
+  await expect(identityTiles).toHaveCount(3);
+  await expect(identityTiles.nth(0)).toContainText('淘宝身份码');
+  await expect(identityTiles.nth(1)).toContainText('拼多多身份码');
+  await expect(identityTiles.nth(2)).toContainText('京东身份码');
+
+  await identityTiles.nth(0).click();
+  await expect(page.locator('#toast')).toContainText('已打开淘宝身份码');
+  await identityTiles.nth(1).click();
+  await expect(page.locator('#toast')).toContainText('已打开多多驿站身份码');
+  await identityTiles.nth(2).click();
+  await expect(page.locator('#toast')).toContainText('已打开京东');
+
+  // Long-press drag reorder on identity grid (drag 淘宝身份码 onto 京东身份码)
+  const firstBox = await identityTiles.nth(0).boundingBox();
+  const lastBox = await identityTiles.nth(2).boundingBox();
+  await page.mouse.move(firstBox.x + firstBox.width / 2, firstBox.y + firstBox.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(480);
+  await page.mouse.move(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.locator('#platform-identity-grid .platform-tile').nth(2)).toContainText('淘宝身份码');
+
+  await page.screenshot({ path: 'test-results/exclusive-with-platforms.png', fullPage: true, animations: 'disabled' });
+
+  // Switch to pickup page and verify all 6 live pickup platform entries
+  await page.locator('.nav-item[data-page="pickup"]').click();
+  const pickupTiles = page.locator('#platform-pickup-grid .platform-tile');
+  await expect(pickupTiles).toHaveCount(6);
+
+  await page.evaluate(() => {
+    window.__bridgeCalls = [];
+    window.__openAppFailPrefixes = ['kwai://', 'snssdk1128://'];
+  });
+
+  await pickupTiles.filter({ hasText: '淘宝待取' }).click();
+  await expect(page.locator('#toast')).toContainText('已打开淘宝待取列表');
+
+  // Missing app with web fallback -> calls openWeb
+  await pickupTiles.filter({ hasText: '快手待取' }).click();
+  await expect(page.locator('#toast')).toContainText('未检测到快手客户端，已改用浏览器打开');
+
+  // Missing app without web fallback -> shows install hint without calling openWeb
+  await pickupTiles.filter({ hasText: '抖音待取' }).click();
+  await expect(page.locator('#toast')).toContainText('未检测到抖音客户端');
+
+  const calls = await page.evaluate(() => window.__bridgeCalls);
+  expect(calls.some(c => c.method === 'openApp' && c.arg.startsWith('tbopen://'))).toBe(true);
+  expect(calls.some(c => c.method === 'openApp' && c.arg.startsWith('kwai://'))).toBe(true);
+  expect(calls.some(c => c.method === 'openWeb' && c.arg.startsWith('https://app.kwaixiaodian.com/'))).toBe(true);
+  expect(calls.some(c => c.method === 'openApp' && c.arg === 'snssdk1128://ecom_order_list')).toBe(true);
+  expect(calls.filter(c => c.method === 'openWeb')).toHaveLength(1);
+
+  await page.screenshot({ path: 'test-results/pickup-with-platforms.png', fullPage: true, animations: 'disabled' });
+
+  // Reload persists reordered identity tiles
+  await page.goto('/');
+  await expect(page.locator('#platform-identity-grid .platform-tile').nth(2)).toContainText('淘宝身份码');
+});
