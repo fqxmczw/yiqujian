@@ -74,28 +74,6 @@
 
 ---
 
-## GitHub 自动构建与发版
-
-本项目已接入 GitHub Actions（`.github/workflows/build-android.yml`），无需在本地配置 Android SDK 即可在云端自动测试并构建签名 APK：
-
-- **日常提交自动构建**：每次向 `main` 分支推送代码或发起 PR，Workflow 会自动运行单元测试并构建 APK，构建产物保存在仓库 **Actions -> Build Android APK** 页面的 Artifacts 中（保留 90 天）。
-- **正式发布 Release（方式一：推送版本标签）**：
-  1. 更新 `android/AndroidManifest.xml` 中的 `android:versionCode` 和 `android:versionName`。
-  2. 提交并推送 `v*` 标签，例如：
-     ```bash
-     git tag v1.3.2
-     git push origin main v1.3.2
-     ```
-  3. GitHub Actions 将自动编译、签名、校验并创建对应的 Release，附带 APK 与 `.sha256` 校验文件。
-- **正式发布 Release（方式二：网页一键触发）**：
-  1. 进入仓库 **Actions -> Build Android APK -> Run workflow**。
-  2. 勾选 **「同时发布为 GitHub Release」** 后运行，即可按 `AndroidManifest.xml` 中的版本号自动打包并发布。
-- **签名密钥安全机制**：
-  - 正式签名证书不进入代码仓库，而是通过仓库 Secrets（`ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_PASSWORD`、`ANDROID_KEY_ALIAS`）在构建时安全注入并于构建结束后清理。
-  - Fork 仓库或未配置 Secrets 的 PR 构建会自动回退至临时自签证书，确保 CI 流程完整可验证。
-
----
-
 ## 本地开发与验证
 
 需要 Node.js 18+（网页运行与测试）与 Python 3（Android 打包辅助脚本）。
