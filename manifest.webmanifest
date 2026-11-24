@@ -1,6 +1,6 @@
 {
-  "name": "快递取件",
-  "short_name": "快递取件",
+  "name": "易取件",
+  "short_name": "易取件",
   "description": "专属码与取件码，随时打开，轻松取件。",
   "lang": "zh-CN",
   "start_url": "./#exclusive",

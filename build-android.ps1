@@ -14,7 +14,7 @@ if ($root -match '[^\x00-\x7F]') {
     & "$stage\build-android.ps1"
     if ($LASTEXITCODE) { throw 'Android build failed.' }
     Copy-Item -LiteralPath "$stage\dist\express-pickup.apk" -Destination "$root\dist\express-pickup.apk" -Force
-    $displayApk = Join-Path $root ('dist\' + [char]0x5FEB + [char]0x9012 + [char]0x53D6 + [char]0x4EF6 + '.apk')
+    $displayApk = Join-Path $root ('dist\' + [char]0x6613 + [char]0x53D6 + [char]0x4EF6 + '.apk')
     Copy-Item -LiteralPath "$root\dist\express-pickup.apk" -Destination $displayApk -Force
     Write-Output "APK created: $displayApk"
     exit

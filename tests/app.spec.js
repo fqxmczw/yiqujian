@@ -30,7 +30,7 @@ test('first launch prompts manual exclusive code, then supports barcode, copy, f
   await expect(page.locator('#exclusive-empty')).toBeVisible();
   await expect(page.locator('#exclusive-card')).toBeHidden();
   await expect(page.locator('#copy-exclusive')).toHaveCount(0);
-  await expect(page.locator('#header-add-exclusive')).toBeHidden();
+  await expect(page.locator('#exclusive-switcher [data-exclusive-add]')).toBeHidden();
   await page.screenshot({ path: 'test-results/exclusive-first-launch.png', fullPage: true, animations: 'disabled' });
 
   // Add exclusive code manually on first use
@@ -44,7 +44,7 @@ test('first launch prompts manual exclusive code, then supports barcode, copy, f
   await expect(page.locator('#exclusive-card')).toBeVisible();
   await expect(page.locator('#exclusive-number')).toHaveText('A12BC345');
   await expect(page.locator('#exclusive-barcode-stage svg.barcode-svg')).toBeVisible();
-  await expect(page.locator('#header-add-exclusive')).toBeVisible();
+  await expect(page.locator('#exclusive-switcher [data-exclusive-add]')).toBeVisible();
   await expect(page.locator('#copy-exclusive')).toHaveCount(0);
   await expect(page.locator('#exclusive-switcher [data-exclusive-select]')).toHaveText(['我的']);
   await expect(page.locator('#exclusive-switcher')).not.toContainText('A12BC345');
@@ -98,7 +98,7 @@ test('anyone can add, switch, edit, import screenshot, and delete exclusive code
   await expect(page.locator('#exclusive-number')).toHaveText('A12BC345');
 
   // Add a second person's exclusive code
-  await page.locator('#header-add-exclusive').click();
+  await page.locator('#exclusive-switcher [data-exclusive-add]').click();
   await expect(page.locator('#exclusive-dialog')).toBeVisible();
   await page.locator('#exclusive-code-input').fill('b98xy765');
   await page.locator('[data-exclusive-label="室友"]').click();
@@ -170,14 +170,14 @@ test('exclusive switcher hides raw codes for unlabeled entries and supports long
   await page.locator('#exclusive-form [type="submit"]').click();
 
   // Add 2nd unlabeled code -> single unnamed shows "专属码"
-  await page.locator('#header-add-exclusive').click();
+  await page.locator('#exclusive-switcher [data-exclusive-add]').click();
   await page.locator('#exclusive-code-input').fill('C34DE567');
   await page.locator('#exclusive-form [type="submit"]').click();
   await expect(page.locator('#exclusive-switcher [data-exclusive-select]')).toHaveText(['我的', '专属码']);
   await expect(page.locator('#exclusive-switcher')).not.toContainText('C34DE567');
 
   // Add 3rd unlabeled code -> multiple unnamed show "专属码 1", "专属码 2"
-  await page.locator('#header-add-exclusive').click();
+  await page.locator('#exclusive-switcher [data-exclusive-add]').click();
   await page.locator('#exclusive-code-input').fill('D56FG789');
   await page.locator('#exclusive-form [type="submit"]').click();
   await expect(page.locator('#exclusive-switcher [data-exclusive-select]')).toHaveText(['我的', '专属码 1', '专属码 2']);

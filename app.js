@@ -15,239 +15,102 @@
   const KS_ORDER_H5 = 'https://app.kwaixiaodian.com/page/kwaishop-trade-order-list-app?layoutType=4&hyId=kwaishopOrder';
   const PDD_PACKAGE_H5 = 'https://m.pinduoduo.net/mdkd/package?entry_source=18&extra_params=from_wx_jump%3D1&p_channel=0';
   const CAINIAO_IDENTITY_H5 = 'https://page.cainiao.com/cn-app-web/identity-code/index.html#/';
+  const PDD_SCHEME = 'pinduoduo://com.xunmeng.pinduoduo/mdkd/package';
+  const JD_ORDER_URI = 'openjd://virtual?params=%7B%22category%22%3A%22jump%22%2C%22des%22%3A%22orderlist%22%7D';
+  const DEWU_ORDER_PATH = 'm.dewu.com/router/order/buyer/orderList?tabId=0';
+
+  const taobaoChain = h5 => {
+    const query = `m.taobao.com/tbopen/index.html?h5Url=${encodeURIComponent(h5)}`;
+    return { pkg: 'com.taobao.taobao', uris: [`taobao://${query}`, `tbopen://${query}`] };
+  };
+  const chain = (pkg, ...uris) => ({ pkg, uris });
+  const platformEntry = (id, brand, glyph, short, title, detail, chains, extra) => ({
+    id,
+    brand,
+    glyph,
+    short,
+    name: short + title,
+    detail,
+    chains,
+    packages: chains.map(item => item.pkg),
+    uri: chains[0].uris[0],
+    ...extra
+  });
 
   const PLATFORM_ENTRIES = {
     identity: [
-      {
-        id: 'taobao-code',
-        short: '淘宝',
-        name: '淘宝身份码',
-        detail: '驿站扫码 · 动态身份码',
-        actionLabel: '出示',
-        packageName: 'com.taobao.taobao',
-        brand: 'taobao',
-        glyph: '淘',
-        uri: `tbopen://m.taobao.com/tbopen/index.html?h5Url=${encodeURIComponent(TB_IDENTITY_H5)}`,
-        chains: [
-          {
-            pkg: 'com.taobao.taobao',
-            uris: [
-              `taobao://m.taobao.com/tbopen/index.html?h5Url=${encodeURIComponent(TB_IDENTITY_H5)}`,
-              `tbopen://m.taobao.com/tbopen/index.html?h5Url=${encodeURIComponent(TB_IDENTITY_H5)}`
-            ]
-          }
-        ],
+      platformEntry('taobao-code', 'taobao', '淘', '淘宝', '身份码', '驿站扫码 · 动态身份码', [taobaoChain(TB_IDENTITY_H5)], {
+        uri: taobaoChain(TB_IDENTITY_H5).uris[1],
         web: TB_IDENTITY_H5,
         toast: '已请求打开淘宝身份码'
-      },
-      {
-        id: 'pdd-code',
-        short: '拼多多',
-        name: '拼多多身份码',
-        detail: '多多驿站 · 动态身份码',
-        actionLabel: '出示',
-        packageName: 'com.xunmeng.pinduoduo',
-        brand: 'pinduoduo',
-        glyph: '拼',
-        uri: 'pinduoduo://com.xunmeng.pinduoduo/mdkd/package?tab=ID_CODE&entry_source=11',
-        chains: [
-          {
-            pkg: 'com.xunmeng.pinduoduo',
-            uris: [
-              'pinduoduo://com.xunmeng.pinduoduo/mdkd/package?tab=ID_CODE&entry_source=11&refer_page_name=login&refer_page_sn=10169',
-              'pinduoduo://com.xunmeng.pinduoduo/mdkd/package?tab=ID_CODE&entry_source=11',
-              'pinduoduo://com.xunmeng.pinduoduo/mdkd/package'
-            ]
-          }
-        ],
+      }),
+      platformEntry('pdd-code', 'pinduoduo', '拼', '拼多多', '身份码', '多多驿站 · 动态身份码', [
+        chain('com.xunmeng.pinduoduo',
+          `${PDD_SCHEME}?tab=ID_CODE&entry_source=11&refer_page_name=login&refer_page_sn=10169`,
+          `${PDD_SCHEME}?tab=ID_CODE&entry_source=11`,
+          PDD_SCHEME)
+      ], {
+        uri: `${PDD_SCHEME}?tab=ID_CODE&entry_source=11`,
         web: PDD_PACKAGE_H5,
         toast: '已请求打开多多驿站身份码'
-      },
-      {
-        id: 'cainiao-code',
-        short: '菜鸟',
-        name: '菜鸟身份码',
-        detail: '菜鸟驿站 · 出库身份码',
-        actionLabel: '出示',
-        brand: 'cainiao',
-        glyph: '菜',
-        packageName: 'com.cainiao.wireless',
-        uri: 'cainiao://router/station_code',
-        chains: [
-          {
-            pkg: 'com.cainiao.wireless',
-            uris: ['cainiao://router/station_code', 'cainiao://desktop/station_code']
-          }
-        ],
+      }),
+      platformEntry('cainiao-code', 'cainiao', '菜', '菜鸟', '身份码', '菜鸟驿站 · 出库身份码', [
+        chain('com.cainiao.wireless', 'cainiao://router/station_code', 'cainiao://desktop/station_code')
+      ], {
         web: CAINIAO_IDENTITY_H5,
         toast: '已请求打开菜鸟身份码',
         homeToast: '已打开菜鸟首页，请点首页“取件码”出示身份码'
-      }
-    ],
+      })
+    ].map(item => ({ ...item, actionLabel: '出示' })),
     pickup: [
-      {
-        id: 'taobao-query',
-        short: '淘宝',
-        name: '淘宝待取',
-        detail: '待取包裹',
-        packageName: 'com.taobao.taobao',
-        brand: 'taobao',
-        glyph: '淘',
-        uri: `tbopen://m.taobao.com/tbopen/index.html?h5Url=${encodeURIComponent(TB_PENDING_H5)}`,
-        chains: [
-          {
-            pkg: 'com.taobao.taobao',
-            uris: [
-              `taobao://m.taobao.com/tbopen/index.html?h5Url=${encodeURIComponent(TB_PENDING_H5)}`,
-              `tbopen://m.taobao.com/tbopen/index.html?h5Url=${encodeURIComponent(TB_PENDING_H5)}`
-            ]
-          }
-        ],
+      platformEntry('taobao-query', 'taobao', '淘', '淘宝', '待取', '待取包裹', [taobaoChain(TB_PENDING_H5)], {
+        uri: taobaoChain(TB_PENDING_H5).uris[1],
         web: TB_PENDING_H5,
         toast: '已请求打开淘宝待取列表，下拉可刷新'
-      },
-      {
-        id: 'pdd-query',
-        short: '拼多多',
-        name: '拼多多待取',
-        detail: '驿站包裹',
-        packageName: 'com.xunmeng.pinduoduo',
-        brand: 'pinduoduo',
-        glyph: '拼',
-        uri: 'pinduoduo://com.xunmeng.pinduoduo/mdkd/package?tab=PACKAGE&entry_source=11',
-        chains: [
-          {
-            pkg: 'com.xunmeng.pinduoduo',
-            uris: [
-              'pinduoduo://com.xunmeng.pinduoduo/mdkd/package?tab=PACKAGE&entry_source=11',
-              'pinduoduo://com.xunmeng.pinduoduo/mdkd/package'
-            ]
-          }
-        ],
+      }),
+      platformEntry('pdd-query', 'pinduoduo', '拼', '拼多多', '待取', '驿站包裹', [
+        chain('com.xunmeng.pinduoduo', `${PDD_SCHEME}?tab=PACKAGE&entry_source=11`, PDD_SCHEME)
+      ], {
         web: PDD_PACKAGE_H5,
         toast: '已请求打开多多驿站包裹列表'
-      },
-      {
-        id: 'cainiao-query',
-        short: '菜鸟',
-        name: '菜鸟待取',
-        detail: '驿站包裹',
-        brand: 'cainiao',
-        glyph: '菜',
-        packageName: 'com.cainiao.wireless',
-        uri: 'cainiao://client.main',
-        chains: [
-          {
-            pkg: 'com.cainiao.wireless',
-            uris: ['cainiao://client.main']
-          }
-        ],
+      }),
+      platformEntry('cainiao-query', 'cainiao', '菜', '菜鸟', '待取', '驿站包裹', [
+        chain('com.cainiao.wireless', 'cainiao://client.main')
+      ], {
         toast: '已请求打开菜鸟查看待取包裹',
         homeToast: '已打开菜鸟首页，请在首页查看待取包裹'
-      },
-      {
-        id: 'jd-query',
-        short: '京东',
-        name: '京东待取',
-        detail: '订单物流',
-        packageName: 'com.jingdong.app.mall',
-        brand: 'jd',
-        glyph: '京',
-        uri: 'openjd://virtual?params=%7B%22category%22%3A%22jump%22%2C%22des%22%3A%22orderlist%22%7D',
-        chains: [
-          {
-            pkg: 'com.jingdong.app.mall',
-            uris: ['openjd://virtual?params=%7B%22category%22%3A%22jump%22%2C%22des%22%3A%22orderlist%22%7D']
-          }
-        ],
+      }),
+      platformEntry('jd-query', 'jd', '京', '京东', '待取', '订单物流', [
+        chain('com.jingdong.app.mall', JD_ORDER_URI)
+      ], {
         web: 'https://order.jd.com/center/list.action',
         toast: '已请求打开京东订单，点开订单可查看取件码'
-      },
-      {
-        id: 'douyin-query',
-        short: '抖音',
-        name: '抖音待取',
-        detail: '商城订单',
-        packageName: 'com.ss.android.ugc.aweme',
-        packages: ['com.ss.android.ugc.aweme', 'com.ss.android.ugc.aweme.lite'],
-        brand: 'douyin',
-        glyph: '抖',
-        uri: 'snssdk1128://ecom_order_list',
-        chains: [
-          {
-            pkg: 'com.ss.android.ugc.aweme',
-            uris: ['snssdk1128://ecom_order_list', 'snssdk1128://wallet']
-          },
-          {
-            pkg: 'com.ss.android.ugc.aweme.lite',
-            uris: ['snssdk2329://ecom_order_list', 'snssdk2329://wallet']
-          }
-        ],
-        web: '',
+      }),
+      platformEntry('douyin-query', 'douyin', '抖', '抖音', '待取', '商城订单', [
+        chain('com.ss.android.ugc.aweme', 'snssdk1128://ecom_order_list', 'snssdk1128://wallet'),
+        chain('com.ss.android.ugc.aweme.lite', 'snssdk2329://ecom_order_list', 'snssdk2329://wallet')
+      ], {
         toast: '已请求打开抖音订单列表，可看待收货与物流'
-      },
-      {
-        id: 'ks-query',
-        short: '快手',
-        name: '快手待取',
-        detail: '小店订单',
-        packageName: 'com.smile.gifmaker',
-        packages: ['com.smile.gifmaker', 'com.kuaishou.nebula'],
-        brand: 'kuaishou',
-        glyph: '快',
-        uri: `kwai://webview?url=${encodeURIComponent(KS_ORDER_H5)}`,
-        chains: [
-          {
-            pkg: 'com.smile.gifmaker',
-            uris: [`kwai://webview?url=${encodeURIComponent(KS_ORDER_H5)}`]
-          },
-          {
-            pkg: 'com.kuaishou.nebula',
-            uris: [`ksnebula://webview?url=${encodeURIComponent(KS_ORDER_H5)}`]
-          }
-        ],
+      }),
+      platformEntry('ks-query', 'kuaishou', '快', '快手', '待取', '小店订单', [
+        chain('com.smile.gifmaker', `kwai://webview?url=${encodeURIComponent(KS_ORDER_H5)}`),
+        chain('com.kuaishou.nebula', `ksnebula://webview?url=${encodeURIComponent(KS_ORDER_H5)}`)
+      ], {
         web: KS_ORDER_H5,
         toast: '已请求打开快手小店订单列表'
-      },
-      {
-        id: 'xhs-query',
-        short: '小红书',
-        name: '小红书待取',
-        detail: '市集订单',
-        packageName: 'com.xingin.xhs',
-        brand: 'xiaohongshu',
-        glyph: '书',
-        uri: 'xhsdiscover://rn/lancer-order/order/list',
-        chains: [
-          {
-            pkg: 'com.xingin.xhs',
-            uris: ['xhsdiscover://rn/lancer-order/order/list']
-          }
-        ],
+      }),
+      platformEntry('xhs-query', 'xiaohongshu', '书', '小红书', '待取', '市集订单', [
+        chain('com.xingin.xhs', 'xhsdiscover://rn/lancer-order/order/list')
+      ], {
         web: 'https://www.xiaohongshu.com/',
         toast: '已请求打开小红书订单列表'
-      },
-      {
-        id: 'dewu-query',
-        short: '得物',
-        name: '得物待取',
-        detail: '买家订单',
-        packageName: 'com.shizhuang.duapp',
-        brand: 'dewu',
-        glyph: '得',
-        uri: '9dewuapp://m.dewu.com/router/order/buyer/orderList?tabId=0',
-        chains: [
-          {
-            pkg: 'com.shizhuang.duapp',
-            uris: [
-              '9dewuapp://m.dewu.com/router/order/buyer/orderList?tabId=0',
-              'dewuapp://m.dewu.com/router/order/buyer/orderList?tabId=0'
-            ]
-          }
-        ],
+      }),
+      platformEntry('dewu-query', 'dewu', '得', '得物', '待取', '买家订单', [
+        chain('com.shizhuang.duapp', `9dewuapp://${DEWU_ORDER_PATH}`, `dewuapp://${DEWU_ORDER_PATH}`)
+      ], {
         web: 'https://m.dewu.com/',
         toast: '已请求打开得物订单列表'
-      }
+      })
     ]
   };
 
@@ -260,81 +123,82 @@
   const barcodeAPI = window.PickupBarcode;
   const parserAPI = window.PickupParser;
   const pages = { exclusive: $('#exclusive-page'), pickup: $('#pickup-page') };
+  const mainContent = $('main');
   const navItems = [...document.querySelectorAll('.nav-item')];
-  const headerAddExclusive = $('#header-add-exclusive');
-  const exclusiveSwitcher = document.querySelector('#exclusive-switcher');
+  const exclusiveSwitcher = $('#exclusive-switcher');
   const platformLauncher = $('#platform-launcher');
   const platformDrawer = $('#platform-drawer');
 
-  const barcodeDialog = document.querySelector('#barcode-dialog');
-  const fullscreenScanStage = document.querySelector('#fullscreen-scan-stage');
-  const fullscreenBarcodeStage = document.querySelector('#fullscreen-barcode-stage');
-  const fullscreenNumber = document.querySelector('#fullscreen-number');
-  const toggleOrientationBtn = document.querySelector('#toggle-scan-orientation');
-  const orientationLabel = document.querySelector('#orientation-label');
-  const fullscreenCopyBtn = document.querySelector('#fullscreen-copy');
+  const barcodeDialog = $('#barcode-dialog');
+  const fullscreenScanStage = $('#fullscreen-scan-stage');
+  const fullscreenBarcodeStage = $('#fullscreen-barcode-stage');
+  const fullscreenNumber = $('#fullscreen-number');
+  const toggleOrientationBtn = $('#toggle-scan-orientation');
+  const orientationLabel = $('#orientation-label');
+  const fullscreenCopyBtn = $('#fullscreen-copy');
 
-  const exclusiveDialog = document.querySelector('#exclusive-dialog');
-  const exclusiveForm = document.querySelector('#exclusive-form');
-  const exclusiveEditId = document.querySelector('#exclusive-edit-id');
-  const exclusiveDialogTitle = document.querySelector('#exclusive-dialog-title');
-  const exclusiveCodeInput = document.querySelector('#exclusive-code-input');
-  const exclusiveLabelInput = document.querySelector('#exclusive-label-input');
-  const exclusiveCodeError = document.querySelector('#exclusive-code-error');
-  const barcodePreviewBox = document.querySelector('#barcode-preview-box');
-  const barcodeSourceBadge = document.querySelector('#barcode-source-badge');
-  const barcodeFileInput = document.querySelector('#barcode-file-input');
-  const clearBarcodeImageBtn = document.querySelector('#clear-barcode-image');
-  const deleteExclusiveBtn = document.querySelector('#delete-exclusive-btn');
-  const helpDialog = document.querySelector('#help-dialog');
+  const exclusiveDialog = $('#exclusive-dialog');
+  const exclusiveForm = $('#exclusive-form');
+  const exclusiveEditId = $('#exclusive-edit-id');
+  const exclusiveDialogTitle = $('#exclusive-dialog-title');
+  const exclusiveCodeInput = $('#exclusive-code-input');
+  const exclusiveLabelInput = $('#exclusive-label-input');
+  const exclusiveCodeError = $('#exclusive-code-error');
+  const barcodePreviewBox = $('#barcode-preview-box');
+  const barcodeSourceBadge = $('#barcode-source-badge');
+  const barcodeFileInput = $('#barcode-file-input');
+  const clearBarcodeImageBtn = $('#clear-barcode-image');
+  const deleteExclusiveBtn = $('#delete-exclusive-btn');
+  const helpDialog = $('#help-dialog');
 
-  const editDialog = document.querySelector('#edit-dialog');
-  const deleteDialog = document.querySelector('#delete-dialog');
-  const codeForm = document.querySelector('#code-form');
-  const codeInput = document.querySelector('#code-input');
-  const labelInput = document.querySelector('#label-input');
+  const editDialog = $('#edit-dialog');
+  const deleteDialog = $('#delete-dialog');
+  const codeForm = $('#code-form');
+  const codeInput = $('#code-input');
+  const labelInput = $('#label-input');
 
-  const importDialog = document.querySelector('#import-dialog');
-  const importTextInput = document.querySelector('#import-text-input');
-  const importPreviewList = document.querySelector('#import-preview-list');
-  const importParseSummary = document.querySelector('#import-parse-summary');
-  const importConfirmBtn = document.querySelector('#import-confirm-btn');
+  const importDialog = $('#import-dialog');
+  const importTextInput = $('#import-text-input');
+  const importPreviewList = $('#import-preview-list');
+  const importParseSummary = $('#import-parse-summary');
+  const importConfirmBtn = $('#import-confirm-btn');
   const importTabs = [...document.querySelectorAll('[data-import-tab]')];
   const importPanels = {
-    paste: document.querySelector('#import-panel-paste'),
-    auto: document.querySelector('#import-panel-auto')
+    paste: $('#import-panel-paste'),
+    auto: $('#import-panel-auto')
   };
-  const clipboardBanner = document.querySelector('#clipboard-banner');
-  const clipboardBannerCode = document.querySelector('#clipboard-banner-code');
-  const clipboardBannerLabel = document.querySelector('#clipboard-banner-label');
-  const quickSmsBtn = document.querySelector('#quick-sms-btn');
-  const quickSmsLabel = document.querySelector('#quick-sms-label');
-  const quickNotifyBtn = document.querySelector('#quick-notify-btn');
-  const quickNotifyLabel = document.querySelector('#quick-notify-label');
-  const smsStatusPill = document.querySelector('#sms-status-pill');
-  const notifyStatusPill = document.querySelector('#notify-status-pill');
-  const smsAutoToggle = document.querySelector('#sms-auto-toggle');
-  const notifyEnabledToggle = document.querySelector('#notify-enabled-toggle');
-  const runSmsScanBtn = document.querySelector('#run-sms-scan-btn');
-  const ignoreOldSmsBtn = document.querySelector('#ignore-old-sms-btn');
-  const smsBaselineRow = document.querySelector('#sms-baseline-row');
-  const smsBaselineText = document.querySelector('#sms-baseline-text');
-  const resetSmsBaselineBtn = document.querySelector('#reset-sms-baseline-btn');
-  const openNotifySettingsBtn = document.querySelector('#open-notify-settings-btn');
-  const openAppSettingsBtn = document.querySelector('#open-app-settings-btn');
-  const smsLastResult = document.querySelector('#sms-last-result');
-  const notifyCaptureSummary = document.querySelector('#notify-capture-summary');
-  const pendingListBar = document.querySelector('#pending-list-bar');
-  const pendingListCount = document.querySelector('#pending-list-count');
-  const markAllPickedBtn = document.querySelector('#mark-all-picked');
-  const historySection = document.querySelector('#history-section');
-  const historySummaryLabel = document.querySelector('#history-summary-label');
-  const historyList = document.querySelector('#history-list');
-  const clearHistoryBtn = document.querySelector('#clear-history-btn');
+  const clipboardBanner = $('#clipboard-banner');
+  const clipboardBannerCode = $('#clipboard-banner-code');
+  const clipboardBannerLabel = $('#clipboard-banner-label');
+  const quickSmsBtn = $('#quick-sms-btn');
+  const quickSmsLabel = $('#quick-sms-label');
+  const quickNotifyBtn = $('#quick-notify-btn');
+  const quickNotifyLabel = $('#quick-notify-label');
+  const smsStatusPill = $('#sms-status-pill');
+  const notifyStatusPill = $('#notify-status-pill');
+  const smsAutoToggle = $('#sms-auto-toggle');
+  const notifyEnabledToggle = $('#notify-enabled-toggle');
+  const runSmsScanBtn = $('#run-sms-scan-btn');
+  const ignoreOldSmsBtn = $('#ignore-old-sms-btn');
+  const smsBaselineRow = $('#sms-baseline-row');
+  const smsBaselineText = $('#sms-baseline-text');
+  const resetSmsBaselineBtn = $('#reset-sms-baseline-btn');
+  const openNotifySettingsBtn = $('#open-notify-settings-btn');
+  const openAppSettingsBtn = $('#open-app-settings-btn');
+  const smsLastResult = $('#sms-last-result');
+  const notifyCaptureSummary = $('#notify-capture-summary');
+  const pendingListBar = $('#pending-list-bar');
+  const pendingListCount = $('#pending-list-count');
+  const markAllPickedBtn = $('#mark-all-picked');
+  const historySection = $('#history-section');
+  const historySummaryLabel = $('#history-summary-label');
+  const historyList = $('#history-list');
+  const clearHistoryBtn = $('#clear-history-btn');
 
   let exclusiveCodes = loadExclusiveCodes();
   let activeExclusiveId = exclusiveCodes[0]?.id || '';
   let draftImageDataUrl = '';
+  let illustrationSettings = loadIllustrationSettings();
   let codes = loadCodes();
   let pickedHistory = loadHistory();
   let handledMap = loadHandledMap();
@@ -389,6 +253,104 @@
       showToast('保存失败，图片可能过大或无存储权限', false);
       return false;
     }
+  }
+
+  function loadIllustrationSettings() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem('expressPickupIllustration.v1') || '{}');
+      return {
+        enabled: parsed.enabled !== false,
+        image: typeof parsed.image === 'string' && parsed.image.startsWith('data:image/') ? parsed.image : ''
+      };
+    } catch {
+      return { enabled: true, image: '' };
+    }
+  }
+
+  function renderIllustration() {
+    const src = illustrationSettings.image || 'assets/pickup-lockers.png';
+    $('#page-illustration').src = src;
+    $('#illustration-preview').src = src;
+    $('.illustration-wrap').hidden = !illustrationSettings.enabled;
+    $('#illustration-enabled').checked = illustrationSettings.enabled;
+    $('#reset-illustration').hidden = !illustrationSettings.image;
+  }
+
+  function saveIllustrationSettings() {
+    try {
+      localStorage.setItem('expressPickupIllustration.v1', JSON.stringify(illustrationSettings));
+      return true;
+    } catch {
+      showToast('图片保存失败，请换一张更小的图片', false);
+      return false;
+    }
+  }
+
+  $('#open-illustration-settings').addEventListener('click', () => {
+    renderIllustration();
+    $('#illustration-dialog').showModal();
+  });
+  $('#illustration-enabled').addEventListener('change', event => {
+    illustrationSettings.enabled = event.target.checked;
+    saveIllustrationSettings();
+    renderIllustration();
+  });
+  $('#choose-illustration').addEventListener('click', () => {
+    if (typeof window.AndroidApp?.openGallery === 'function') callBridge('openGallery');
+    else $('#illustration-file-input').click();
+  });
+  $('#illustration-file-input').addEventListener('change', async event => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      const image = await cropIllustration(file);
+      const previous = illustrationSettings.image;
+      illustrationSettings.image = image;
+      if (!saveIllustrationSettings()) {
+        illustrationSettings.image = previous;
+        return;
+      }
+      renderIllustration();
+      showToast('插图已更新');
+    } catch {
+      showToast('无法读取这张图片，请换一张重试', false);
+    }
+  });
+  $('#reset-illustration').addEventListener('click', () => {
+    illustrationSettings.image = '';
+    saveIllustrationSettings();
+    renderIllustration();
+    showToast('已恢复默认插图');
+  });
+
+  function cropIllustration(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = () => {
+        const image = new Image();
+        image.onerror = reject;
+        image.onload = () => {
+          try {
+            const width = 1361;
+            const height = 674;
+            const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+            const sourceWidth = width / scale;
+            const sourceHeight = height / scale;
+            const sourceX = (image.naturalWidth - sourceWidth) / 2;
+            const sourceY = (image.naturalHeight - sourceHeight) / 2;
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            canvas.getContext('2d').drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', .86));
+          } catch (error) { reject(error); }
+        };
+        image.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
   }
 
   function getActiveExclusive() {
@@ -559,10 +521,6 @@
     return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
-  function syncHeaderAddExclusive() {
-    headerAddExclusive.hidden = pages.exclusive.hidden || exclusiveCodes.length === 0;
-  }
-
   function syncPlatformLauncher() {
     const isExclusive = !pages.exclusive.hidden;
     const label = isExclusive ? '平台身份码' : '平台实时取件';
@@ -574,6 +532,7 @@
   }
 
   function switchPage(pageName) {
+    const previousPageName = pages.exclusive.hidden ? 'pickup' : 'exclusive';
     if (platformDrawer.open) closePlatformDrawer();
     Object.entries(pages).forEach(([name, page]) => { page.hidden = name !== pageName; });
     navItems.forEach(item => {
@@ -584,9 +543,21 @@
     });
     $('#page-title').textContent = pageName === 'exclusive' ? '我的专属码' : '我的取件码';
     syncPlatformLauncher();
-    syncHeaderAddExclusive();
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    $('#open-illustration-settings').hidden = pageName === 'pickup';
+    mainContent.scrollTop = 0;
     window.history.replaceState(null, '', pageName === 'pickup' ? '#pickup' : '#exclusive');
+    if (previousPageName !== pageName) {
+      animateSlideIn(pages[pageName], pageName === 'pickup' ? 1 : -1, 28);
+    }
+  }
+
+  function animateSlideIn(element, direction, distance) {
+    if (!element || typeof element.animate !== 'function' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    element.animate([
+      { transform: `translateX(${direction * distance}px)`, offset: 0 },
+      { transform: `translateX(${direction * distance * 0.18}px)`, offset: 0.72 },
+      { transform: 'translateX(0)', offset: 1 }
+    ], { duration: 300, easing: 'cubic-bezier(.25, .8, .25, 1)' });
   }
 
   function pageFromHash() {
@@ -607,9 +578,9 @@
     return '<span class="barcode-fallback">当前专属码格式不支持自动生成条码，请导入微信条码截图</span>';
   }
 
-  function renderExclusivePage() {
-    const card = document.querySelector('#exclusive-card');
-    const emptyBox = document.querySelector('#exclusive-empty');
+  function renderExclusivePage(slideDirection = 0) {
+    const card = $('#exclusive-card');
+    const emptyBox = $('#exclusive-empty');
 
     const active = getActiveExclusive();
     activeExclusiveId = active ? active.id : '';
@@ -629,24 +600,22 @@
     if (!active) {
       card.hidden = true;
       emptyBox.hidden = false;
-      syncHeaderAddExclusive();
       return;
     }
 
     card.hidden = false;
     emptyBox.hidden = true;
-    syncHeaderAddExclusive();
 
-    const ownerBadge = document.querySelector('#exclusive-owner-badge');
+    const ownerBadge = $('#exclusive-owner-badge');
     const sourceTag = active.imageDataUrl ? '微信原图' : '标准条码';
     ownerBadge.textContent = `${displayNames.get(active.id) || '专属码'} · ${sourceTag}`;
 
-    const enlargeBtn = document.querySelector('#enlarge-exclusive');
+    const enlargeBtn = $('#enlarge-exclusive');
     enlargeBtn.setAttribute('aria-label', `放大专属码 ${active.code}`);
 
-    document.querySelector('#exclusive-barcode-stage').innerHTML = renderBarcodeMarkup(active, 96);
+    $('#exclusive-barcode-stage').innerHTML = renderBarcodeMarkup(active, 96);
 
-    const numberEl = document.querySelector('#exclusive-number');
+    const numberEl = $('#exclusive-number');
     numberEl.textContent = active.code;
     numberEl.setAttribute('aria-label', active.code);
     numberEl.classList.toggle('is-long', active.code.length > 10);
@@ -654,6 +623,7 @@
     fullscreenBarcodeStage.innerHTML = renderBarcodeMarkup(active, 130);
     fullscreenNumber.textContent = active.code;
     fullscreenNumber.classList.toggle('is-long', active.code.length > 10);
+    animateSlideIn(card, slideDirection, 24);
   }
 
   const LONG_PRESS_MS = 300;
@@ -846,17 +816,19 @@
     }
     const chip = event.target.closest('[data-exclusive-select]');
     if (!chip) return;
+    const previousIndex = exclusiveCodes.findIndex(item => item.id === activeExclusiveId);
+    const nextIndex = exclusiveCodes.findIndex(item => item.id === chip.dataset.exclusiveSelect);
     activeExclusiveId = chip.dataset.exclusiveSelect;
-    renderExclusivePage();
+    renderExclusivePage(nextIndex > previousIndex ? 1 : -1);
   });
 
   function renderCodes() {
-    const list = document.querySelector('#code-list');
-    document.querySelector('#empty-state').hidden = codes.length > 0;
-    document.querySelector('#add-code').hidden = codes.length === 0;
+    const list = $('#code-list');
+    $('#empty-state').hidden = codes.length > 0;
+    $('#add-code').hidden = codes.length === 0;
     pendingListBar.hidden = codes.length === 0;
     pendingListCount.textContent = `待取 ${codes.length} 件`;
-    const count = document.querySelector('#nav-count');
+    const count = $('#nav-count');
     count.hidden = codes.length === 0;
     count.textContent = codes.length > 99 ? '99+' : String(codes.length);
     const sourceLabels = {
@@ -980,13 +952,12 @@
     setTimeout(() => exclusiveCodeInput.focus(), 100);
   }
 
-  headerAddExclusive.addEventListener('click', () => openExclusiveEditor(null));
-  document.querySelector('#empty-add-exclusive').addEventListener('click', () => openExclusiveEditor(null));
-  document.querySelector('#edit-exclusive').addEventListener('click', () => {
+  $('#empty-add-exclusive').addEventListener('click', () => openExclusiveEditor(null));
+  $('#edit-exclusive').addEventListener('click', () => {
     const active = getActiveExclusive();
     openExclusiveEditor(active);
   });
-  document.querySelector('#open-help').addEventListener('click', () => helpDialog.showModal());
+  $('#open-help').addEventListener('click', () => helpDialog.showModal());
 
   document.querySelectorAll('[data-exclusive-label]').forEach(button => {
     button.addEventListener('click', () => { exclusiveLabelInput.value = button.dataset.exclusiveLabel; });
@@ -997,7 +968,7 @@
     updateExclusivePreview();
   });
 
-  document.querySelector('#import-barcode-btn').addEventListener('click', () => barcodeFileInput.click());
+  $('#import-barcode-btn').addEventListener('click', () => barcodeFileInput.click());
   clearBarcodeImageBtn.addEventListener('click', () => {
     draftImageDataUrl = '';
     barcodeFileInput.value = '';
@@ -1174,7 +1145,7 @@
     showToast('专属码已删除');
   });
 
-  document.querySelector('#code-list').addEventListener('click', event => {
+  $('#code-list').addEventListener('click', event => {
     const button = event.target.closest('button[data-action]');
     if (!button) return;
     const item = codes.find(code => code.id === button.dataset.id);
@@ -1183,7 +1154,7 @@
     if (button.dataset.action === 'edit') openEditor(item);
     if (button.dataset.action === 'picked') markCodePicked(item.id);
     if (button.dataset.action === 'delete') {
-      document.querySelector('#delete-id').value = item.id;
+      $('#delete-id').value = item.id;
       deleteDialog.showModal();
     }
   });
@@ -1237,30 +1208,30 @@
 
   function openEditor(item = null) {
     codeForm.reset();
-    document.querySelector('#edit-id').value = item?.id || '';
-    document.querySelector('#edit-title').textContent = item ? '编辑取件码' : '添加取件码';
+    $('#edit-id').value = item?.id || '';
+    $('#edit-title').textContent = item ? '编辑取件码' : '添加取件码';
     codeInput.value = item?.code || '';
     labelInput.value = item?.label || '';
-    document.querySelector('#code-error').textContent = '';
+    $('#code-error').textContent = '';
     editDialog.showModal();
     setTimeout(() => codeInput.focus(), 100);
   }
 
-  document.querySelector('#add-code').addEventListener('click', () => openEditor());
-  document.querySelector('#empty-add-code').addEventListener('click', () => openEditor());
+  $('#add-code').addEventListener('click', () => openEditor());
+  $('#empty-add-code').addEventListener('click', () => openEditor());
   document.querySelectorAll('[data-label]').forEach(button => button.addEventListener('click', () => { labelInput.value = button.dataset.label; }));
 
   codeForm.addEventListener('submit', event => {
     event.preventDefault();
     const code = codeInput.value.trim().replace(/\s+/g, ' ');
-    const id = document.querySelector('#edit-id').value;
+    const id = $('#edit-id').value;
     if (!code) {
-      document.querySelector('#code-error').textContent = '请输入取件码';
+      $('#code-error').textContent = '请输入取件码';
       codeInput.focus();
       return;
     }
     if (codes.some(item => item.code.toLowerCase() === code.toLowerCase() && item.id !== id)) {
-      document.querySelector('#code-error').textContent = '这个取件码已经保存过了';
+      $('#code-error').textContent = '这个取件码已经保存过了';
       return;
     }
     const previous = [...codes];
@@ -1279,11 +1250,11 @@
     showToast(id ? '取件码已更新' : '取件码已保存');
   });
 
-  codeInput.addEventListener('input', () => { document.querySelector('#code-error').textContent = ''; });
-  document.querySelector('#cancel-delete').addEventListener('click', () => deleteDialog.close());
-  document.querySelector('#confirm-delete').addEventListener('click', () => {
+  codeInput.addEventListener('input', () => { $('#code-error').textContent = ''; });
+  $('#cancel-delete').addEventListener('click', () => deleteDialog.close());
+  $('#confirm-delete').addEventListener('click', () => {
     const previous = [...codes];
-    const deleteId = document.querySelector('#delete-id').value;
+    const deleteId = $('#delete-id').value;
     const target = codes.find(item => item.id === deleteId);
     codes = codes.filter(item => item.id !== deleteId);
     if (!saveCodes()) { codes = previous; return; }
@@ -1775,9 +1746,8 @@
     callBridge('requestClipboardCheck', false);
   };
 
-  document.querySelector('#open-smart-import').addEventListener('click', () => openImportDialog('paste'));
-  document.querySelector('#empty-smart-import').addEventListener('click', () => openImportDialog('paste'));
-  document.querySelector('#quick-paste-btn').addEventListener('click', () => openImportDialog('paste'));
+  $('#open-smart-import').addEventListener('click', () => openImportDialog('paste'));
+  $('#quick-paste-btn').addEventListener('click', () => openImportDialog('paste'));
   quickSmsBtn.addEventListener('click', () => {
     if (autoStatus.isAndroid && autoStatus.hasSmsPermission) triggerSmsScan(false);
     else openImportDialog('auto');
@@ -1786,12 +1756,12 @@
 
   importTabs.forEach(tab => tab.addEventListener('click', () => setImportTab(tab.dataset.importTab)));
   importTextInput.addEventListener('input', updateImportPreview);
-  document.querySelector('#import-clear-text').addEventListener('click', () => {
+  $('#import-clear-text').addEventListener('click', () => {
     importTextInput.value = '';
     updateImportPreview();
     importTextInput.focus();
   });
-  document.querySelector('#import-read-clipboard').addEventListener('click', () => readClipboardForImport(true));
+  $('#import-read-clipboard').addEventListener('click', () => readClipboardForImport(true));
 
   importPreviewList.addEventListener('change', event => {
     const check = event.target.closest('[data-preview-check]');
@@ -1826,7 +1796,7 @@
     }
   });
 
-  document.querySelector('#clipboard-import-btn').addEventListener('click', () => {
+  $('#clipboard-import-btn').addEventListener('click', () => {
     const res = importParsedItems(clipboardCandidates, 'clipboard', { respectHandled: false });
     lastDismissedClipboardRaw = lastClipboardRaw;
     clipboardCandidates = [];
@@ -1834,13 +1804,13 @@
     if (res.addedCount > 0) showToast(`已从剪贴板导入 ${res.addedCount} 个取件码`);
   });
 
-  document.querySelector('#clipboard-dismiss-btn').addEventListener('click', () => {
+  $('#clipboard-dismiss-btn').addEventListener('click', () => {
     lastDismissedClipboardRaw = lastClipboardRaw;
     clipboardCandidates = [];
     clipboardBanner.hidden = true;
   });
 
-  document.querySelector('#sms-days-group').addEventListener('click', event => {
+  $('#sms-days-group').addEventListener('click', event => {
     const btn = event.target.closest('[data-sms-days]');
     if (!btn) return;
     const days = Number(btn.dataset.smsDays);
@@ -1913,7 +1883,7 @@
     }
   });
 
-  document.querySelector('#enlarge-exclusive').addEventListener('click', async () => {
+  $('#enlarge-exclusive').addEventListener('click', async () => {
     if (!getActiveExclusive()) return;
     setScanOrientation(window.innerHeight >= window.innerWidth);
     barcodeDialog.showModal();
@@ -1929,8 +1899,64 @@
     wakeLock = null;
   });
 
+  let swipeStart = null;
+  let suppressSwipeClick = false;
+
+  document.addEventListener('touchstart', event => {
+    suppressSwipeClick = false;
+    if (event.touches.length !== 1 || $('dialog[open]') || switcherDrag || platformDragState) return;
+    const target = event.target;
+    if (target.closest('input, textarea, select, summary, label, dialog, .bottom-nav, .exclusive-switcher, .auto-import-bar')) return;
+    const touch = event.touches[0];
+    swipeStart = { x: touch.clientX, y: touch.clientY, id: touch.identifier, horizontal: false };
+  }, { passive: true });
+
+  document.addEventListener('touchmove', event => {
+    if (!swipeStart || switcherDrag || platformDragState) return;
+    const touch = [...event.changedTouches].find(item => item.identifier === swipeStart.id);
+    if (!touch) return;
+    const deltaX = touch.clientX - swipeStart.x;
+    const deltaY = touch.clientY - swipeStart.y;
+    if (Math.abs(deltaY) > Math.abs(deltaX) + 10) {
+      swipeStart = null;
+      return;
+    }
+    if (Math.abs(deltaX) > 18 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
+      swipeStart.horizontal = true;
+      if (event.cancelable) event.preventDefault();
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchend', event => {
+    if (!swipeStart) return;
+    const touch = [...event.changedTouches].find(item => item.identifier === swipeStart.id);
+    if (!touch) return;
+    const deltaX = touch.clientX - swipeStart.x;
+    const horizontal = swipeStart.horizontal;
+    swipeStart = null;
+    if (!horizontal || Math.abs(deltaX) < 48 || switcherDrag || platformDragState) return;
+    suppressSwipeClick = true;
+
+    if (touch.target?.closest?.('#exclusive-card') && exclusiveCodes.length > 1) {
+      const index = exclusiveCodes.findIndex(item => item.id === activeExclusiveId);
+      const nextIndex = (index + (deltaX < 0 ? 1 : -1) + exclusiveCodes.length) % exclusiveCodes.length;
+      activeExclusiveId = exclusiveCodes[nextIndex].id;
+      renderExclusivePage(deltaX < 0 ? 1 : -1);
+      return;
+    }
+    switchPage(deltaX < 0 ? 'pickup' : 'exclusive');
+  }, { passive: true });
+
+  document.addEventListener('touchcancel', () => { swipeStart = null; }, { passive: true });
+  document.addEventListener('click', event => {
+    if (!suppressSwipeClick) return;
+    suppressSwipeClick = false;
+    event.preventDefault();
+    event.stopPropagation();
+  }, true);
+
   function showToast(message, success = true) {
-    const toast = document.querySelector('#toast');
+    const toast = $('#toast');
     toast.querySelector('span').textContent = message;
     toast.querySelector('svg').style.display = success ? '' : 'none';
     toast.classList.add('visible');
@@ -1939,7 +1965,7 @@
   }
 
   window.handleAndroidBack = () => {
-    const openDialog = document.querySelector('dialog[open]');
+    const openDialog = $('dialog[open]');
     if (openDialog) { openDialog.close(); return true; }
     if (!pages.exclusive.hidden) return false;
     switchPage('exclusive');
@@ -1984,68 +2010,34 @@
     return ordered;
   }
 
+  const hasBridge = method => typeof window.AndroidApp?.[method] === 'function';
+  const tryBridge = (method, ...args) => {
+    try { return Boolean(callBridge(method, ...args)); } catch { return false; }
+  };
+
   function openPlatformEntry(entry) {
-    const bridge = window.AndroidApp;
-    const hasPackagedOpen = Boolean(bridge && typeof bridge.openAppForPackage === 'function');
-    const hasNativeOpen = Boolean(bridge && (
-      hasPackagedOpen || typeof bridge.openApp === 'function' || typeof bridge.openInstalledApp === 'function'
-    ));
-    if (hasNativeOpen) {
-      let opened = false;
-      if (hasPackagedOpen && Array.isArray(entry.chains)) {
-        for (const chain of entry.chains) {
-          for (const candidateUri of chain.uris) {
-            try { opened = Boolean(bridge.openAppForPackage(candidateUri, chain.pkg)); } catch { opened = false; }
-            if (opened) break;
-          }
-          if (opened) break;
-        }
-      } else if (entry.uri && typeof bridge.openApp === 'function') {
-        try { opened = Boolean(bridge.openApp(entry.uri)); } catch { opened = false; }
+    const hasPackagedOpen = hasBridge('openAppForPackage');
+    if (hasPackagedOpen || hasBridge('openApp') || hasBridge('openInstalledApp')) {
+      const canOpenUri = hasBridge('openApp');
+      const opened = hasPackagedOpen
+        ? entry.chains.some(item => item.uris.some(uri => tryBridge('openAppForPackage', uri, item.pkg)))
+        : canOpenUri && tryBridge('openApp', entry.uri);
+      if (opened) return showToast(entry.toast);
+      if (hasBridge('openInstalledApp') && entry.packages.some(pkg => tryBridge('openInstalledApp', pkg))) {
+        return showToast(entry.homeToast || `已打开${entry.short}首页，请在应用内查看${entry.name.includes('身份码') ? '身份码' : '订单与物流'}`);
       }
-      if (opened) {
-        showToast(entry.toast);
-        return;
+      if (hasPackagedOpen && canOpenUri && tryBridge('openApp', entry.uri)) return showToast(entry.toast);
+      if (entry.web && hasBridge('openWeb') && tryBridge('openWeb', entry.web)) {
+        return showToast(`${entry.short}应用跳转未成功，已改用浏览器打开`);
       }
-      const candidatePkgs = entry.packages || (entry.packageName ? [entry.packageName] : []);
-      if (typeof bridge.openInstalledApp === 'function') {
-        for (const pkg of candidatePkgs) {
-          try { opened = Boolean(bridge.openInstalledApp(pkg)); } catch { opened = false; }
-          if (opened) {
-            showToast(entry.homeToast || `已打开${entry.short}首页，请在应用内查看${entry.name.includes('身份码') ? '身份码' : '订单与物流'}`);
-            return;
-          }
-        }
-      }
-      if (hasPackagedOpen && entry.uri && typeof bridge.openApp === 'function') {
-        try { opened = Boolean(bridge.openApp(entry.uri)); } catch { opened = false; }
-        if (opened) {
-          showToast(entry.toast);
-          return;
-        }
-      }
-      if (entry.web) {
-        let webOpened = false;
-        try {
-          if (typeof bridge.openWeb === 'function') {
-            webOpened = Boolean(bridge.openWeb(entry.web));
-          }
-        } catch { webOpened = false; }
-        if (webOpened) {
-          showToast(`${entry.short}应用跳转未成功，已改用浏览器打开`);
-          return;
-        }
-      }
-      showToast(`暂时无法打开${entry.short}，请确认已安装并可正常启动`, false);
-      return;
+      return showToast(`暂时无法打开${entry.short}，请确认已安装并可正常启动`, false);
     }
 
     if (entry.web) {
       try { window.open(entry.web, '_blank', 'noopener,noreferrer'); } catch { /* Ignore popup blockers. */ }
-      showToast(`已在浏览器打开${entry.name}`);
-      return;
+      return showToast(`已在浏览器打开${entry.name}`);
     }
-    showToast(`${entry.name}请在安卓客户端内打开`, false);
+    return showToast(`${entry.name}请在安卓客户端内打开`, false);
   }
 
   function platformHaptic(longPress = false) {
@@ -2225,7 +2217,7 @@
   }
 
   function renderPlatformGrid(group, selector) {
-    const grid = document.querySelector(selector);
+    const grid = $(selector);
     if (!grid) return;
     grid.innerHTML = '';
     for (const [index, entry] of getOrderedPlatformEntries(group).entries()) {
@@ -2237,49 +2229,12 @@
       tile.setAttribute('aria-label', `${entry.name}，${entry.detail}，长按或按 Alt 加方向键排序`);
       tile.style.setProperty('--entry-delay', `${index * 45}ms`);
 
-      const content = document.createElement('span');
-      content.className = 'platform-tile-content';
-
-      const trail = document.createElement('span');
-      trail.className = 'platform-tile-trail';
-      trail.setAttribute('aria-hidden', 'true');
-      if (entry.actionLabel) {
-        const pill = document.createElement('span');
-        pill.className = 'platform-tile-pill';
-        pill.textContent = entry.actionLabel;
-        trail.appendChild(pill);
-      }
-      const chevSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      chevSvg.setAttribute('class', 'platform-tile-chevron');
-      const chevUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-      chevUse.setAttribute('href', '#icon-chevron-right');
-      chevSvg.appendChild(chevUse);
-
-      const gripSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      gripSvg.setAttribute('class', 'platform-tile-grip');
-      const gripUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-      gripUse.setAttribute('href', '#icon-grip');
-      gripSvg.appendChild(gripUse);
-      trail.append(chevSvg, gripSvg);
-
-      const badge = document.createElement('span');
-      badge.className = 'platform-badge';
-      badge.dataset.brand = entry.brand;
-      badge.setAttribute('aria-hidden', 'true');
-      badge.textContent = entry.glyph;
-
-      const name = document.createElement('span');
-      name.className = 'platform-tile-name';
-      name.textContent = entry.name;
-
-      const detail = document.createElement('span');
-      detail.className = 'platform-tile-detail';
-      detail.textContent = entry.detail;
-      const text = document.createElement('span');
-      text.className = 'platform-tile-text';
-      text.append(name, detail);
-      content.append(badge, text, trail);
-      tile.append(content);
+      const pill = entry.actionLabel ? `<span class="platform-tile-pill">${escapeHTML(entry.actionLabel)}</span>` : '';
+      tile.innerHTML = `<span class="platform-tile-content">`
+        + `<span class="platform-badge" data-brand="${entry.brand}" aria-hidden="true">${escapeHTML(entry.glyph)}</span>`
+        + `<span class="platform-tile-text"><span class="platform-tile-name">${escapeHTML(entry.name)}</span><span class="platform-tile-detail">${escapeHTML(entry.detail)}</span></span>`
+        + `<span class="platform-tile-trail" aria-hidden="true">${pill}<svg class="platform-tile-chevron"><use href="#icon-chevron-right"/></svg><svg class="platform-tile-grip"><use href="#icon-grip"/></svg></span>`
+        + `</span>`;
       attachPlatformTileEvents(tile, entry, group, grid);
       grid.appendChild(tile);
     }
@@ -2305,6 +2260,7 @@
   renderExclusivePage();
   renderCodes();
   renderPlatformGrids();
+  renderIllustration();
   switchPage(pageFromHash());
   refreshAutoImportStatus();
   const initialPending = callBridge('drainPendingMessages');

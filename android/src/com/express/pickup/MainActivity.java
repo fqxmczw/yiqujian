@@ -3,10 +3,12 @@ package com.express.pickup;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -17,6 +19,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.provider.Telephony;
+import android.provider.MediaStore;
 import android.view.View;
 import android.view.HapticFeedbackConstants;
 import android.view.ViewGroup;
@@ -42,11 +45,13 @@ import org.json.JSONObject;
 public final class MainActivity extends Activity {
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int SMS_PERMISSION_REQUEST = 1002;
+    private static final int GALLERY_PERMISSION_REQUEST = 1003;
     private static final long AUTO_SMS_COOLDOWN_MS = 15000L;
     private static final int MAX_SMS_ROWS = 300;
 
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
+    private boolean useGalleryPicker = false;
     private volatile boolean webReady = false;
     private volatile boolean smsScanRunning = false;
     private int pendingSmsScanDays = 7;
@@ -132,6 +137,11 @@ public final class MainActivity extends Activity {
                     filePathCallback.onReceiveValue(null);
                 }
                 filePathCallback = callback;
+                if (useGalleryPicker) {
+                    useGalleryPicker = false;
+                    requestGalleryWithPermission();
+                    return true;
+                }
                 String[] actions = new String[] { Intent.ACTION_GET_CONTENT, Intent.ACTION_OPEN_DOCUMENT };
                 for (String action : actions) {
                     try {
@@ -286,7 +296,59 @@ public final class MainActivity extends Activity {
                 boolean canAskAgain = shouldShowRequestPermissionRationale(Manifest.permission.READ_SMS);
                 evalJs("window.onAndroidSmsPermissionDenied && window.onAndroidSmsPermissionDenied(" + canAskAgain + ")");
             }
+        } else if (requestCode == GALLERY_PERMISSION_REQUEST) {
+            boolean granted = grantResults != null && grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            if (granted) openGallery();
+            else showGalleryPermissionDialog();
         }
+    }
+
+    private String galleryPermission() {
+        return Build.VERSION.SDK_INT >= 33 ? Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE;
+    }
+
+    private void requestGalleryWithPermission() {
+        if (checkSelfPermission(galleryPermission()) == PackageManager.PERMISSION_GRANTED) {
+            openGallery();
+        } else {
+            requestPermissions(new String[] { galleryPermission() }, GALLERY_PERMISSION_REQUEST);
+        }
+    }
+
+    private void openGallery() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            intent.setType("image/*");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivityForResult(intent, FILE_CHOOSER_REQUEST);
+        } catch (Throwable ignored) {
+            try {
+                Intent fallback = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                fallback.addCategory(Intent.CATEGORY_OPENABLE);
+                fallback.setType("image/*");
+                startActivityForResult(fallback, FILE_CHOOSER_REQUEST);
+            } catch (Throwable ignoredFallback) {
+                if (filePathCallback != null) {
+                    filePathCallback.onReceiveValue(null);
+                    filePathCallback = null;
+                }
+            }
+        }
+    }
+
+    private void showGalleryPermissionDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("需要相册权限")
+                .setMessage("允许读取照片后，才能从相册选择顶部插图。你也可以前往系统设置重新开启权限。")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("去设置", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        openAppDetailsSettings();
+                    }
+                })
+                .show();
     }
 
     @Override
@@ -520,6 +582,18 @@ public final class MainActivity extends Activity {
                     window.setAttributes(lp);
                     if (active) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
                     else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void openGallery() {
+            runOnUi(new Runnable() {
+                @Override
+                public void run() {
+                    if (webView == null) return;
+                    useGalleryPicker = true;
+                    webView.evaluateJavascript("document.querySelector('#illustration-file-input').click()", null);
                 }
             });
         }
