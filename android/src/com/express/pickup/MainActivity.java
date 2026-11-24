@@ -18,6 +18,7 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.provider.Telephony;
 import android.view.View;
+import android.view.HapticFeedbackConstants;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowInsets;
@@ -106,7 +107,7 @@ public final class MainActivity extends Activity {
                 if (request == null || request.getUrl() == null) return false;
                 String url = request.getUrl().toString();
                 if (url.startsWith("http://") || url.startsWith("https://")) {
-                    openExternalUri(url, true);
+                    openExternalUri(url, null, true);
                     return true;
                 }
                 return false;
@@ -635,16 +636,78 @@ public final class MainActivity extends Activity {
 
         @JavascriptInterface
         public boolean openApp(final String uri) {
-            return openExternalUri(uri, false);
+            return openExternalUri(uri, null, false);
+        }
+
+        @JavascriptInterface
+        public boolean openAppForPackage(final String uri, final String packageName) {
+            if (!isAllowedExternalPackage(packageName)) return false;
+            return openExternalUri(uri, packageName, false);
         }
 
         @JavascriptInterface
         public boolean openWeb(final String url) {
-            return openExternalUri(url, true);
+            return openExternalUri(url, null, true);
+        }
+
+        @JavascriptInterface
+        public boolean openInstalledApp(final String packageName) {
+            if (!isAllowedExternalPackage(packageName)) return false;
+            try {
+                Intent intent = getPackageManager().getLaunchIntentForPackage(packageName);
+                if (intent == null) return false;
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                return true;
+            } catch (RuntimeException ignored) {
+                return false;
+            }
+        }
+
+        @JavascriptInterface
+        public void hapticFeedback() {
+            runOnUi(new Runnable() {
+                @Override public void run() {
+                    if (webView != null) {
+                        webView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void hapticLongPress() {
+            runOnUi(new Runnable() {
+                @Override public void run() {
+                    if (webView != null) {
+                        webView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                    }
+                }
+            });
         }
     }
 
-    private boolean openExternalUri(String rawUri, boolean httpOnly) {
+    private static boolean isAllowedExternalPackage(String packageName) {
+        if (packageName == null) return false;
+        switch (packageName) {
+            case "com.taobao.taobao":
+            case "com.tmall.wireless":
+            case "com.xunmeng.pinduoduo":
+            case "com.jingdong.app.mall":
+            case "com.ss.android.ugc.aweme":
+            case "com.ss.android.ugc.aweme.lite":
+            case "com.smile.gifmaker":
+            case "com.kuaishou.nebula":
+            case "com.shizhuang.duapp":
+            case "com.cainiao.wireless":
+            case "com.xingin.xhs":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private boolean openExternalUri(String rawUri, String targetPackage, boolean httpOnly) {
         if (rawUri == null) return false;
         String trimmed = rawUri.trim();
         if (trimmed.isEmpty()) return false;
@@ -662,11 +725,10 @@ public final class MainActivity extends Activity {
                 return false;
             }
             Intent intent = new Intent(Intent.ACTION_VIEW, parsed);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            if (intent.resolveActivity(getPackageManager()) != null) {
-                startActivity(intent);
-                return true;
+            if (targetPackage != null && !targetPackage.isEmpty()) {
+                intent.setPackage(targetPackage);
             }
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
             return true;
         } catch (ActivityNotFoundException | SecurityException ignored) {

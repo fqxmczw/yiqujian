@@ -13,6 +13,8 @@
   const TB_IDENTITY_H5 = 'https://pages-fast.m.taobao.com/wow/z/uniapp/1011717/last-mile-fe/end-collect-platform/identity-code?x-ssr=true';
   const TB_PENDING_H5 = 'https://pages-fast.m.taobao.com/wow/z/uniapp/1100333/last-mile-fe/m-end-school-tab/home';
   const KS_ORDER_H5 = 'https://app.kwaixiaodian.com/page/kwaishop-trade-order-list-app?layoutType=4&hyId=kwaishopOrder';
+  const PDD_PACKAGE_H5 = 'https://m.pinduoduo.net/mdkd/package?entry_source=18&extra_params=from_wx_jump%3D1&p_channel=0';
+  const CAINIAO_IDENTITY_H5 = 'https://page.cainiao.com/cn-app-web/identity-code/index.html#/';
 
   const PLATFORM_ENTRIES = {
     identity: [
@@ -20,31 +22,66 @@
         id: 'taobao-code',
         short: '淘宝',
         name: '淘宝身份码',
+        detail: '驿站扫码 · 动态身份码',
+        actionLabel: '出示',
+        packageName: 'com.taobao.taobao',
         brand: 'taobao',
         glyph: '淘',
         uri: `tbopen://m.taobao.com/tbopen/index.html?h5Url=${encodeURIComponent(TB_IDENTITY_H5)}`,
+        chains: [
+          {
+            pkg: 'com.taobao.taobao',
+            uris: [
+              `taobao://m.taobao.com/tbopen/index.html?h5Url=${encodeURIComponent(TB_IDENTITY_H5)}`,
+              `tbopen://m.taobao.com/tbopen/index.html?h5Url=${encodeURIComponent(TB_IDENTITY_H5)}`
+            ]
+          }
+        ],
         web: TB_IDENTITY_H5,
-        toast: '已打开淘宝身份码'
+        toast: '已请求打开淘宝身份码'
       },
       {
         id: 'pdd-code',
         short: '拼多多',
         name: '拼多多身份码',
+        detail: '多多驿站 · 动态身份码',
+        actionLabel: '出示',
+        packageName: 'com.xunmeng.pinduoduo',
         brand: 'pinduoduo',
         glyph: '拼',
         uri: 'pinduoduo://com.xunmeng.pinduoduo/mdkd/package?tab=ID_CODE&entry_source=11',
-        web: 'https://m.pinduoduo.net/mdkd/package?entry_source=18&extra_params=from_wx_jump%3D1&p_channel=0',
-        toast: '已打开多多驿站身份码'
+        chains: [
+          {
+            pkg: 'com.xunmeng.pinduoduo',
+            uris: [
+              'pinduoduo://com.xunmeng.pinduoduo/mdkd/package?tab=ID_CODE&entry_source=11&refer_page_name=login&refer_page_sn=10169',
+              'pinduoduo://com.xunmeng.pinduoduo/mdkd/package?tab=ID_CODE&entry_source=11',
+              'pinduoduo://com.xunmeng.pinduoduo/mdkd/package'
+            ]
+          }
+        ],
+        web: PDD_PACKAGE_H5,
+        toast: '已请求打开多多驿站身份码'
       },
       {
-        id: 'jd-code',
-        short: '京东',
-        name: '京东身份码',
-        brand: 'jd',
-        glyph: '京',
-        uri: 'openapp.jdmobile://virtual?params=%7B%22category%22%3A%22jump%22%2C%22des%22%3A%22myJd%22%7D',
-        web: 'https://m.jd.com',
-        toast: '已打开京东，身份码在“我的”里'
+        id: 'cainiao-code',
+        short: '菜鸟',
+        name: '菜鸟身份码',
+        detail: '菜鸟驿站 · 出库身份码',
+        actionLabel: '出示',
+        brand: 'cainiao',
+        glyph: '菜',
+        packageName: 'com.cainiao.wireless',
+        uri: 'cainiao://router/station_code',
+        chains: [
+          {
+            pkg: 'com.cainiao.wireless',
+            uris: ['cainiao://router/station_code', 'cainiao://desktop/station_code']
+          }
+        ],
+        web: CAINIAO_IDENTITY_H5,
+        toast: '已请求打开菜鸟身份码',
+        homeToast: '已打开菜鸟首页，请点首页“取件码”出示身份码'
       }
     ],
     pickup: [
@@ -52,61 +89,164 @@
         id: 'taobao-query',
         short: '淘宝',
         name: '淘宝待取',
+        detail: '待取包裹',
+        packageName: 'com.taobao.taobao',
         brand: 'taobao',
         glyph: '淘',
         uri: `tbopen://m.taobao.com/tbopen/index.html?h5Url=${encodeURIComponent(TB_PENDING_H5)}`,
+        chains: [
+          {
+            pkg: 'com.taobao.taobao',
+            uris: [
+              `taobao://m.taobao.com/tbopen/index.html?h5Url=${encodeURIComponent(TB_PENDING_H5)}`,
+              `tbopen://m.taobao.com/tbopen/index.html?h5Url=${encodeURIComponent(TB_PENDING_H5)}`
+            ]
+          }
+        ],
         web: TB_PENDING_H5,
-        toast: '已打开淘宝待取列表，下拉可刷新'
+        toast: '已请求打开淘宝待取列表，下拉可刷新'
       },
       {
         id: 'pdd-query',
         short: '拼多多',
         name: '拼多多待取',
+        detail: '驿站包裹',
+        packageName: 'com.xunmeng.pinduoduo',
         brand: 'pinduoduo',
         glyph: '拼',
-        uri: 'pinduoduo://com.xunmeng.pinduoduo/mdkd/package',
-        web: 'https://m.pinduoduo.net/mdkd/package?entry_source=18&extra_params=from_wx_jump%3D1&p_channel=0',
-        toast: '已打开多多驿站包裹列表'
+        uri: 'pinduoduo://com.xunmeng.pinduoduo/mdkd/package?tab=PACKAGE&entry_source=11',
+        chains: [
+          {
+            pkg: 'com.xunmeng.pinduoduo',
+            uris: [
+              'pinduoduo://com.xunmeng.pinduoduo/mdkd/package?tab=PACKAGE&entry_source=11',
+              'pinduoduo://com.xunmeng.pinduoduo/mdkd/package'
+            ]
+          }
+        ],
+        web: PDD_PACKAGE_H5,
+        toast: '已请求打开多多驿站包裹列表'
+      },
+      {
+        id: 'cainiao-query',
+        short: '菜鸟',
+        name: '菜鸟待取',
+        detail: '驿站包裹',
+        brand: 'cainiao',
+        glyph: '菜',
+        packageName: 'com.cainiao.wireless',
+        uri: 'cainiao://client.main',
+        chains: [
+          {
+            pkg: 'com.cainiao.wireless',
+            uris: ['cainiao://client.main']
+          }
+        ],
+        toast: '已请求打开菜鸟查看待取包裹',
+        homeToast: '已打开菜鸟首页，请在首页查看待取包裹'
       },
       {
         id: 'jd-query',
         short: '京东',
         name: '京东待取',
+        detail: '订单物流',
+        packageName: 'com.jingdong.app.mall',
         brand: 'jd',
         glyph: '京',
         uri: 'openjd://virtual?params=%7B%22category%22%3A%22jump%22%2C%22des%22%3A%22orderlist%22%7D',
+        chains: [
+          {
+            pkg: 'com.jingdong.app.mall',
+            uris: ['openjd://virtual?params=%7B%22category%22%3A%22jump%22%2C%22des%22%3A%22orderlist%22%7D']
+          }
+        ],
         web: 'https://order.jd.com/center/list.action',
-        toast: '已打开京东订单，点开订单可查看取件码'
+        toast: '已请求打开京东订单，点开订单可查看取件码'
       },
       {
         id: 'douyin-query',
         short: '抖音',
         name: '抖音待取',
+        detail: '商城订单',
+        packageName: 'com.ss.android.ugc.aweme',
+        packages: ['com.ss.android.ugc.aweme', 'com.ss.android.ugc.aweme.lite'],
         brand: 'douyin',
         glyph: '抖',
         uri: 'snssdk1128://ecom_order_list',
+        chains: [
+          {
+            pkg: 'com.ss.android.ugc.aweme',
+            uris: ['snssdk1128://ecom_order_list', 'snssdk1128://wallet']
+          },
+          {
+            pkg: 'com.ss.android.ugc.aweme.lite',
+            uris: ['snssdk2329://ecom_order_list', 'snssdk2329://wallet']
+          }
+        ],
         web: '',
-        toast: '已打开抖音订单列表，可看待收货与物流'
+        toast: '已请求打开抖音订单列表，可看待收货与物流'
       },
       {
         id: 'ks-query',
         short: '快手',
         name: '快手待取',
+        detail: '小店订单',
+        packageName: 'com.smile.gifmaker',
+        packages: ['com.smile.gifmaker', 'com.kuaishou.nebula'],
         brand: 'kuaishou',
         glyph: '快',
         uri: `kwai://webview?url=${encodeURIComponent(KS_ORDER_H5)}`,
+        chains: [
+          {
+            pkg: 'com.smile.gifmaker',
+            uris: [`kwai://webview?url=${encodeURIComponent(KS_ORDER_H5)}`]
+          },
+          {
+            pkg: 'com.kuaishou.nebula',
+            uris: [`ksnebula://webview?url=${encodeURIComponent(KS_ORDER_H5)}`]
+          }
+        ],
         web: KS_ORDER_H5,
-        toast: '已打开快手小店订单列表'
+        toast: '已请求打开快手小店订单列表'
+      },
+      {
+        id: 'xhs-query',
+        short: '小红书',
+        name: '小红书待取',
+        detail: '市集订单',
+        packageName: 'com.xingin.xhs',
+        brand: 'xiaohongshu',
+        glyph: '书',
+        uri: 'xhsdiscover://rn/lancer-order/order/list',
+        chains: [
+          {
+            pkg: 'com.xingin.xhs',
+            uris: ['xhsdiscover://rn/lancer-order/order/list']
+          }
+        ],
+        web: 'https://www.xiaohongshu.com/',
+        toast: '已请求打开小红书订单列表'
       },
       {
         id: 'dewu-query',
         short: '得物',
         name: '得物待取',
+        detail: '买家订单',
+        packageName: 'com.shizhuang.duapp',
         brand: 'dewu',
         glyph: '得',
         uri: '9dewuapp://m.dewu.com/router/order/buyer/orderList?tabId=0',
+        chains: [
+          {
+            pkg: 'com.shizhuang.duapp',
+            uris: [
+              '9dewuapp://m.dewu.com/router/order/buyer/orderList?tabId=0',
+              'dewuapp://m.dewu.com/router/order/buyer/orderList?tabId=0'
+            ]
+          }
+        ],
         web: 'https://m.dewu.com/',
-        toast: '已打开得物订单列表'
+        toast: '已请求打开得物订单列表'
       }
     ]
   };
@@ -123,6 +263,8 @@
   const navItems = [...document.querySelectorAll('.nav-item')];
   const headerAddExclusive = $('#header-add-exclusive');
   const exclusiveSwitcher = document.querySelector('#exclusive-switcher');
+  const platformLauncher = $('#platform-launcher');
+  const platformDrawer = $('#platform-drawer');
 
   const barcodeDialog = document.querySelector('#barcode-dialog');
   const fullscreenScanStage = document.querySelector('#fullscreen-scan-stage');
@@ -421,7 +563,18 @@
     headerAddExclusive.hidden = pages.exclusive.hidden || exclusiveCodes.length === 0;
   }
 
+  function syncPlatformLauncher() {
+    const isExclusive = !pages.exclusive.hidden;
+    const label = isExclusive ? '平台身份码' : '平台实时取件';
+    platformLauncher.setAttribute('aria-label', `展开${label}`);
+    platformLauncher.title = label;
+    platformDrawer.querySelector('#platform-drawer-title').textContent = label;
+    $('#platform-identity-section').hidden = !isExclusive;
+    $('#platform-pickup-section').hidden = isExclusive;
+  }
+
   function switchPage(pageName) {
+    if (platformDrawer.open) closePlatformDrawer();
     Object.entries(pages).forEach(([name, page]) => { page.hidden = name !== pageName; });
     navItems.forEach(item => {
       const active = item.dataset.page === pageName;
@@ -430,6 +583,7 @@
       else item.removeAttribute('aria-current');
     });
     $('#page-title').textContent = pageName === 'exclusive' ? '我的专属码' : '我的取件码';
+    syncPlatformLauncher();
     syncHeaderAddExclusive();
     window.scrollTo({ top: 0, behavior: 'instant' });
     window.history.replaceState(null, '', pageName === 'pickup' ? '#pickup' : '#exclusive');
@@ -1831,27 +1985,58 @@
   }
 
   function openPlatformEntry(entry) {
-    const hasNativeOpen = Boolean(window.AndroidApp && typeof window.AndroidApp.openApp === 'function');
+    const bridge = window.AndroidApp;
+    const hasPackagedOpen = Boolean(bridge && typeof bridge.openAppForPackage === 'function');
+    const hasNativeOpen = Boolean(bridge && (
+      hasPackagedOpen || typeof bridge.openApp === 'function' || typeof bridge.openInstalledApp === 'function'
+    ));
     if (hasNativeOpen) {
       let opened = false;
-      try { opened = Boolean(window.AndroidApp.openApp(entry.uri)); } catch { opened = false; }
+      if (hasPackagedOpen && Array.isArray(entry.chains)) {
+        for (const chain of entry.chains) {
+          for (const candidateUri of chain.uris) {
+            try { opened = Boolean(bridge.openAppForPackage(candidateUri, chain.pkg)); } catch { opened = false; }
+            if (opened) break;
+          }
+          if (opened) break;
+        }
+      } else if (entry.uri && typeof bridge.openApp === 'function') {
+        try { opened = Boolean(bridge.openApp(entry.uri)); } catch { opened = false; }
+      }
       if (opened) {
         showToast(entry.toast);
         return;
       }
-      if (entry.web) {
-        let webOpened = false;
-        try {
-          if (typeof window.AndroidApp.openWeb === 'function') {
-            webOpened = Boolean(window.AndroidApp.openWeb(entry.web));
+      const candidatePkgs = entry.packages || (entry.packageName ? [entry.packageName] : []);
+      if (typeof bridge.openInstalledApp === 'function') {
+        for (const pkg of candidatePkgs) {
+          try { opened = Boolean(bridge.openInstalledApp(pkg)); } catch { opened = false; }
+          if (opened) {
+            showToast(entry.homeToast || `已打开${entry.short}首页，请在应用内查看${entry.name.includes('身份码') ? '身份码' : '订单与物流'}`);
+            return;
           }
-        } catch { webOpened = false; }
-        if (webOpened) {
-          showToast(`未检测到${entry.short}客户端，已改用浏览器打开`);
+        }
+      }
+      if (hasPackagedOpen && entry.uri && typeof bridge.openApp === 'function') {
+        try { opened = Boolean(bridge.openApp(entry.uri)); } catch { opened = false; }
+        if (opened) {
+          showToast(entry.toast);
           return;
         }
       }
-      showToast(`未检测到${entry.short}客户端，请先安装后再打开`, false);
+      if (entry.web) {
+        let webOpened = false;
+        try {
+          if (typeof bridge.openWeb === 'function') {
+            webOpened = Boolean(bridge.openWeb(entry.web));
+          }
+        } catch { webOpened = false; }
+        if (webOpened) {
+          showToast(`${entry.short}应用跳转未成功，已改用浏览器打开`);
+          return;
+        }
+      }
+      showToast(`暂时无法打开${entry.short}，请确认已安装并可正常启动`, false);
       return;
     }
 
@@ -1860,7 +2045,15 @@
       showToast(`已在浏览器打开${entry.name}`);
       return;
     }
-    showToast(`${entry.short}待取请在安卓客户端内一键跳转`, false);
+    showToast(`${entry.name}请在安卓客户端内打开`, false);
+  }
+
+  function platformHaptic(longPress = false) {
+    try {
+      if (longPress && typeof window.AndroidApp?.hapticLongPress === 'function') callBridge('hapticLongPress');
+      else if (typeof window.AndroidApp?.hapticFeedback === 'function') callBridge('hapticFeedback');
+      else if (navigator.vibrate) navigator.vibrate(longPress ? 14 : 10);
+    } catch { /* Follow device feedback settings; feedback is optional. */ }
   }
 
   function syncPlatformOrderFromDom(group, grid) {
@@ -1872,6 +2065,38 @@
     clearTimeout(platformHoldTimer);
     platformHoldTimer = null;
   }
+
+  function openPlatformDrawer() {
+    if (platformDrawer.open) {
+      if (platformHoldTimer || platformDragState) return;
+      closePlatformDrawer();
+      return;
+    }
+    stopPlatformHold();
+    finishPlatformDrag();
+    syncPlatformLauncher();
+    platformDrawer.showModal();
+    platformLauncher.setAttribute('aria-expanded', 'true');
+    platformLauncher.classList.add('is-expanded');
+  }
+
+  function closePlatformDrawer() {
+    stopPlatformHold();
+    finishPlatformDrag();
+    if (platformDrawer.open) platformDrawer.close();
+  }
+
+  platformLauncher.addEventListener('click', openPlatformDrawer);
+  $('#close-platform-drawer').addEventListener('click', closePlatformDrawer);
+  platformDrawer.addEventListener('click', event => {
+    if (event.target === platformDrawer && !platformHoldTimer && !platformDragState) closePlatformDrawer();
+  });
+  platformDrawer.addEventListener('close', () => {
+    stopPlatformHold();
+    finishPlatformDrag();
+    platformLauncher.setAttribute('aria-expanded', 'false');
+    platformLauncher.classList.remove('is-expanded');
+  });
 
   function handlePlatformDragMove(event) {
     if (!platformDragState || event.pointerId !== platformDragState.pointerId) return;
@@ -1911,43 +2136,90 @@
     let startY = 0;
     let activePointerId = null;
 
+    function beginDrag() {
+      platformHoldTimer = null;
+      tile.classList.remove('is-pressing', 'is-rebounding');
+      platformDragState = { tile, grid, group, pointerId: activePointerId, moved: false };
+      suppressPlatformClick = true;
+      tile.classList.add('is-dragging');
+      grid.classList.add('is-reordering');
+      platformHaptic(true);
+      window.addEventListener('pointermove', handlePlatformDragMove, { passive: false });
+      window.addEventListener('pointerup', finishPlatformDrag);
+      window.addEventListener('pointercancel', finishPlatformDrag);
+    }
+
+    function clearPressVisual(rebound = false) {
+      const wasPressing = tile.classList.contains('is-pressing');
+      tile.classList.remove('is-pressing');
+      if (rebound && wasPressing && !platformDragState) {
+        tile.classList.remove('is-rebounding');
+        void tile.offsetWidth;
+        tile.classList.add('is-rebounding');
+      }
+    }
+
     tile.addEventListener('pointerdown', event => {
       if (event.pointerType === 'mouse' && event.button !== 0) return;
+      if (platformDragState) return;
       startX = event.clientX;
       startY = event.clientY;
       activePointerId = event.pointerId;
       stopPlatformHold();
-      platformHoldTimer = setTimeout(() => {
-        platformHoldTimer = null;
-        platformDragState = { tile, grid, group, pointerId: activePointerId, moved: false };
-        suppressPlatformClick = true;
-        tile.classList.add('is-dragging');
-        grid.classList.add('is-reordering');
-        if (navigator.vibrate) {
-          try { navigator.vibrate(10); } catch { /* Optional vibration. */ }
-        }
-        window.addEventListener('pointermove', handlePlatformDragMove, { passive: false });
-        window.addEventListener('pointerup', finishPlatformDrag);
-        window.addEventListener('pointercancel', finishPlatformDrag);
-      }, 420);
-    });
-
-    tile.addEventListener('pointermove', event => {
-      if (platformDragState || !platformHoldTimer || event.pointerId !== activePointerId) return;
-      if (Math.abs(event.clientX - startX) > 8 || Math.abs(event.clientY - startY) > 8) {
-        stopPlatformHold();
+      if (grid.classList.contains('is-sort-mode')) {
+        beginDrag();
+      } else {
+        tile.classList.remove('is-rebounding');
+        tile.classList.add('is-pressing');
+        platformHoldTimer = setTimeout(beginDrag, 420);
       }
     });
 
-    tile.addEventListener('pointerup', stopPlatformHold);
-    tile.addEventListener('pointercancel', stopPlatformHold);
-    tile.addEventListener('pointerleave', () => { if (!platformDragState) stopPlatformHold(); });
+    tile.addEventListener('pointermove', event => {
+      if (platformDragState || event.pointerId !== activePointerId) return;
+      if (Math.abs(event.clientX - startX) > 8 || Math.abs(event.clientY - startY) > 8) {
+        stopPlatformHold();
+        clearPressVisual(false);
+      }
+    });
+
+    tile.addEventListener('pointerup', () => {
+      stopPlatformHold();
+      clearPressVisual(true);
+    });
+    tile.addEventListener('pointercancel', () => {
+      stopPlatformHold();
+      clearPressVisual(false);
+    });
+    tile.addEventListener('pointerleave', () => {
+      if (!platformDragState) {
+        stopPlatformHold();
+        clearPressVisual(false);
+      }
+    });
+    tile.addEventListener('animationend', event => {
+      if (event.animationName === 'platform-rebound') tile.classList.remove('is-rebounding');
+    });
     tile.addEventListener('contextmenu', event => event.preventDefault());
+    tile.addEventListener('keydown', event => {
+      if (!event.altKey || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+      event.preventDefault();
+      const previous = event.key === 'ArrowUp' || event.key === 'ArrowLeft';
+      const sibling = previous ? tile.previousElementSibling : tile.nextElementSibling;
+      if (!sibling) return;
+      grid.insertBefore(tile, previous ? sibling : sibling.nextSibling);
+      tile.focus({ preventScroll: true });
+      syncPlatformOrderFromDom(group, grid);
+      showToast('已更新平台顺序');
+    });
     tile.addEventListener('click', () => {
       if (suppressPlatformClick) {
         suppressPlatformClick = false;
         return;
       }
+      if (grid.classList.contains('is-sort-mode')) return;
+      platformHaptic();
+      closePlatformDrawer();
       openPlatformEntry(entry);
     });
   }
@@ -1956,20 +2228,39 @@
     const grid = document.querySelector(selector);
     if (!grid) return;
     grid.innerHTML = '';
-    for (const entry of getOrderedPlatformEntries(group)) {
+    for (const [index, entry] of getOrderedPlatformEntries(group).entries()) {
       const tile = document.createElement('button');
       tile.type = 'button';
       tile.className = 'platform-tile';
       tile.dataset.entryId = entry.id;
       tile.dataset.platformGroup = group;
-      tile.setAttribute('aria-label', `${entry.name}，长按可拖动排序`);
+      tile.setAttribute('aria-label', `${entry.name}，${entry.detail}，长按或按 Alt 加方向键排序`);
+      tile.style.setProperty('--entry-delay', `${index * 45}ms`);
 
-      const extSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      extSvg.setAttribute('class', 'platform-tile-ext');
-      extSvg.setAttribute('aria-hidden', 'true');
-      const extUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-      extUse.setAttribute('href', '#icon-external');
-      extSvg.appendChild(extUse);
+      const content = document.createElement('span');
+      content.className = 'platform-tile-content';
+
+      const trail = document.createElement('span');
+      trail.className = 'platform-tile-trail';
+      trail.setAttribute('aria-hidden', 'true');
+      if (entry.actionLabel) {
+        const pill = document.createElement('span');
+        pill.className = 'platform-tile-pill';
+        pill.textContent = entry.actionLabel;
+        trail.appendChild(pill);
+      }
+      const chevSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      chevSvg.setAttribute('class', 'platform-tile-chevron');
+      const chevUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+      chevUse.setAttribute('href', '#icon-chevron-right');
+      chevSvg.appendChild(chevUse);
+
+      const gripSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      gripSvg.setAttribute('class', 'platform-tile-grip');
+      const gripUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+      gripUse.setAttribute('href', '#icon-grip');
+      gripSvg.appendChild(gripUse);
+      trail.append(chevSvg, gripSvg);
 
       const badge = document.createElement('span');
       badge.className = 'platform-badge';
@@ -1981,7 +2272,14 @@
       name.className = 'platform-tile-name';
       name.textContent = entry.name;
 
-      tile.append(extSvg, badge, name);
+      const detail = document.createElement('span');
+      detail.className = 'platform-tile-detail';
+      detail.textContent = entry.detail;
+      const text = document.createElement('span');
+      text.className = 'platform-tile-text';
+      text.append(name, detail);
+      content.append(badge, text, trail);
+      tile.append(content);
       attachPlatformTileEvents(tile, entry, group, grid);
       grid.appendChild(tile);
     }
@@ -1991,6 +2289,18 @@
     renderPlatformGrid('identity', '#platform-identity-grid');
     renderPlatformGrid('pickup', '#platform-pickup-grid');
   }
+
+  document.querySelectorAll('[data-sort-platforms]').forEach(button => {
+    button.addEventListener('click', () => {
+      const grid = document.getElementById(button.getAttribute('aria-controls'));
+      stopPlatformHold();
+      finishPlatformDrag();
+      const sorting = grid.classList.toggle('is-sort-mode');
+      button.setAttribute('aria-pressed', String(sorting));
+      button.textContent = sorting ? '完成' : '排序';
+      if (sorting) showToast('拖动卡片调整顺序，调整后点“完成”');
+    });
+  });
 
   renderExclusivePage();
   renderCodes();

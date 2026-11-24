@@ -1,5 +1,20 @@
 const { test, expect } = require('@playwright/test');
 
+async function openPlatformDrawer(page) {
+  const drawer = page.locator('#platform-drawer');
+  await page.locator('#platform-launcher').click();
+  await expect(drawer).toBeVisible();
+  await expect(page.locator('#platform-launcher')).toHaveAttribute('aria-expanded', 'true');
+  await drawer.evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => {}))));
+}
+
+async function selectPlatformEntry(page, tile) {
+  if (!await page.locator('#platform-drawer').isVisible()) await openPlatformDrawer(page);
+  await tile.click();
+  await expect(page.locator('#platform-drawer')).toBeHidden();
+  await expect(page.locator('#platform-launcher')).toHaveAttribute('aria-expanded', 'false');
+}
+
 test('first launch prompts manual exclusive code, then supports barcode, copy, fullscreen scan, and help dialog', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.goto('/');
@@ -489,6 +504,50 @@ test('mark picked-up prevents old SMS resurrection, allows reused shelf codes, a
   await expect(page.locator('#sms-baseline-row')).toBeHidden();
 });
 
+test('platform drawer opens only the shortcuts for the active page', async ({ page }) => {
+  await page.goto('/');
+  const launcher = page.locator('#platform-launcher');
+  const drawer = page.locator('#platform-drawer');
+  await expect(drawer).toBeHidden();
+  await expect(launcher).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.locator('#platform-identity-section')).toBeHidden();
+  await expect(page.locator('#platform-pickup-section')).toBeHidden();
+
+  for (const [pageName, group, title, count] of [
+    ['exclusive', 'identity', '平台身份码', 3],
+    ['pickup', 'pickup', '平台实时取件', 8]
+  ]) {
+    await page.locator(`.nav-item[data-page="${pageName}"]`).click();
+    await expect(launcher).toHaveAttribute('aria-label', `展开${title}`);
+    await openPlatformDrawer(page);
+    await expect(drawer).toHaveAccessibleName(title);
+    await expect(page.locator(`#platform-${group}-section`)).toBeVisible();
+    await expect(page.locator(`#platform-${group}-grid .platform-tile`)).toHaveCount(count);
+    await expect(page.locator(`#platform-${group === 'identity' ? 'pickup' : 'identity'}-section`)).toBeHidden();
+    await page.locator('#close-platform-drawer').click();
+    await expect(drawer).toBeHidden();
+    await expect(launcher).toHaveAttribute('aria-expanded', 'false');
+  }
+});
+
+test('platform drawer dismisses by close button, backdrop, Escape, and Android Back without switching pages', async ({ page }) => {
+  await page.goto('/#pickup');
+  const dismissals = [
+    () => page.locator('#close-platform-drawer').click(),
+    () => page.mouse.click(8, 8),
+    () => page.keyboard.press('Escape'),
+    async () => { expect(await page.evaluate(() => window.handleAndroidBack())).toBe(true); }
+  ];
+  for (const dismiss of dismissals) {
+    await openPlatformDrawer(page);
+    await dismiss();
+    await expect(page.locator('#platform-drawer')).toBeHidden();
+    await expect(page.locator('#platform-launcher')).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('.nav-item[data-page="pickup"]')).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('#page-title')).toHaveText('我的取件码');
+  }
+});
+
 test('platform identity & live pickup shortcuts launch apps, fallback to web, and persist drag order', async ({ page }) => {
   await page.addInitScript(() => {
     window.__bridgeCalls = [];
@@ -507,6 +566,10 @@ test('platform identity & live pickup shortcuts launch apps, fallback to web, an
       openWeb: (url) => {
         window.__bridgeCalls.push({ method: 'openWeb', arg: url });
         return true;
+      },
+      openInstalledApp: (packageName) => {
+        window.__bridgeCalls.push({ method: 'openInstalledApp', arg: packageName });
+        return packageName === 'com.cainiao.wireless';
       }
     };
   });
@@ -516,58 +579,202 @@ test('platform identity & live pickup shortcuts launch apps, fallback to web, an
   await expect(identityTiles).toHaveCount(3);
   await expect(identityTiles.nth(0)).toContainText('淘宝身份码');
   await expect(identityTiles.nth(1)).toContainText('拼多多身份码');
-  await expect(identityTiles.nth(2)).toContainText('京东身份码');
+  await expect(identityTiles.nth(2)).toContainText('菜鸟身份码');
+  await expect(page.getByText('京东身份码', { exact: true })).toHaveCount(0);
 
-  await identityTiles.nth(0).click();
-  await expect(page.locator('#toast')).toContainText('已打开淘宝身份码');
-  await identityTiles.nth(1).click();
-  await expect(page.locator('#toast')).toContainText('已打开多多驿站身份码');
-  await identityTiles.nth(2).click();
-  await expect(page.locator('#toast')).toContainText('已打开京东');
+  await selectPlatformEntry(page, identityTiles.nth(0));
+  await expect(page.locator('#toast')).toContainText('已请求打开淘宝身份码');
+  await selectPlatformEntry(page, identityTiles.nth(1));
+  await expect(page.locator('#toast')).toContainText('已请求打开多多驿站身份码');
+  await selectPlatformEntry(page, identityTiles.nth(2));
+  await expect(page.locator('#toast')).toContainText('已请求打开菜鸟身份码');
+  expect(await page.evaluate(() => window.__bridgeCalls.some(c => c.method === 'openApp' && c.arg === 'cainiao://router/station_code'))).toBe(true);
 
-  // Long-press drag reorder on identity grid (drag 淘宝身份码 onto 京东身份码)
+  // If Cainiao station_code deep link is rejected on an older client, falls back to Cainiao home
+  await page.evaluate(() => { window.__openAppFailPrefixes = ['cainiao://']; });
+  await selectPlatformEntry(page, identityTiles.nth(2));
+  await expect(page.locator('#toast')).toContainText('请点首页“取件码”');
+  expect(await page.evaluate(() => window.__bridgeCalls.some(c => c.method === 'openInstalledApp' && c.arg === 'com.cainiao.wireless'))).toBe(true);
+
+  // Long-press drag reorder on identity grid (drag 淘宝身份码 onto 菜鸟身份码)
+  await openPlatformDrawer(page);
+  await page.locator('#platform-identity-grid').scrollIntoViewIfNeeded();
   const firstBox = await identityTiles.nth(0).boundingBox();
   const lastBox = await identityTiles.nth(2).boundingBox();
   await page.mouse.move(firstBox.x + firstBox.width / 2, firstBox.y + firstBox.height / 2);
   await page.mouse.down();
-  await page.waitForTimeout(480);
+  await expect(identityTiles.nth(0)).toHaveClass(/is-dragging/);
   await page.mouse.move(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height / 2, { steps: 8 });
   await page.mouse.up();
   await expect(page.locator('#platform-identity-grid .platform-tile').nth(2)).toContainText('淘宝身份码');
 
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: 'test-results/exclusive-with-platforms.png', fullPage: true, animations: 'disabled' });
+  await page.locator('#close-platform-drawer').click();
 
-  // Switch to pickup page and verify all 6 live pickup platform entries
+  // Switch to pickup page and verify all eight symmetrical platform entries.
   await page.locator('.nav-item[data-page="pickup"]').click();
+  await openPlatformDrawer(page);
   const pickupTiles = page.locator('#platform-pickup-grid .platform-tile');
-  await expect(pickupTiles).toHaveCount(6);
+  await expect(pickupTiles).toHaveCount(8);
+  await expect(pickupTiles.filter({ hasText: '小红书待取' })).toHaveCount(1);
+  expect(await pickupTiles.locator('.platform-tile-name, .platform-tile-detail').evaluateAll(
+    nodes => nodes.some(el => el.scrollWidth > el.clientWidth + 1)
+  )).toBe(false);
 
   await page.evaluate(() => {
     window.__bridgeCalls = [];
-    window.__openAppFailPrefixes = ['kwai://', 'snssdk1128://'];
+    window.__openAppFailPrefixes = ['kwai://', 'snssdk1128://', 'cainiao://'];
   });
 
-  await pickupTiles.filter({ hasText: '淘宝待取' }).click();
-  await expect(page.locator('#toast')).toContainText('已打开淘宝待取列表');
+  await selectPlatformEntry(page, pickupTiles.filter({ hasText: '淘宝待取' }));
+  await expect(page.locator('#toast')).toContainText('已请求打开淘宝待取列表');
+  await selectPlatformEntry(page, pickupTiles.filter({ hasText: '拼多多待取' }));
+  await selectPlatformEntry(page, pickupTiles.filter({ hasText: '菜鸟待取' }));
+  await expect(page.locator('#toast')).toContainText('请在首页查看待取包裹');
+  await selectPlatformEntry(page, pickupTiles.filter({ hasText: '小红书待取' }));
+  await expect(page.locator('#toast')).toContainText('已请求打开小红书订单列表');
 
   // Missing app with web fallback -> calls openWeb
-  await pickupTiles.filter({ hasText: '快手待取' }).click();
-  await expect(page.locator('#toast')).toContainText('未检测到快手客户端，已改用浏览器打开');
+  await selectPlatformEntry(page, pickupTiles.filter({ hasText: '快手待取' }));
+  await expect(page.locator('#toast')).toContainText('快手应用跳转未成功，已改用浏览器打开');
 
   // Missing app without web fallback -> shows install hint without calling openWeb
-  await pickupTiles.filter({ hasText: '抖音待取' }).click();
-  await expect(page.locator('#toast')).toContainText('未检测到抖音客户端');
+  await selectPlatformEntry(page, pickupTiles.filter({ hasText: '抖音待取' }));
+  await expect(page.locator('#toast')).toContainText('暂时无法打开抖音');
 
   const calls = await page.evaluate(() => window.__bridgeCalls);
   expect(calls.some(c => c.method === 'openApp' && c.arg.startsWith('tbopen://'))).toBe(true);
   expect(calls.some(c => c.method === 'openApp' && c.arg.startsWith('kwai://'))).toBe(true);
   expect(calls.some(c => c.method === 'openWeb' && c.arg.startsWith('https://app.kwaixiaodian.com/'))).toBe(true);
   expect(calls.some(c => c.method === 'openApp' && c.arg === 'snssdk1128://ecom_order_list')).toBe(true);
+  expect(calls.some(c => c.method === 'openApp' && c.arg === 'xhsdiscover://rn/lancer-order/order/list')).toBe(true);
+  expect(calls.some(c => c.method === 'openApp' && c.arg.endsWith('/mdkd/package?tab=PACKAGE&entry_source=11'))).toBe(true);
   expect(calls.filter(c => c.method === 'openWeb')).toHaveLength(1);
 
+  await openPlatformDrawer(page);
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: 'test-results/pickup-with-platforms.png', fullPage: true, animations: 'disabled' });
+  await page.locator('#platform-pickup-section').screenshot({ path: 'test-results/platform-pickup-redesign.png', animations: 'disabled' });
 
   // Reload persists reordered identity tiles
   await page.goto('/');
+  await openPlatformDrawer(page);
   await expect(page.locator('#platform-identity-grid .platform-tile').nth(2)).toContainText('淘宝身份码');
+});
+
+test('platform launch supports packaged chains, lite app fallback, app home, and official web fallback', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__launchCalls = [];
+    window.__canLaunchHome = true;
+    window.__webThrows = false;
+    window.__allowPackages = new Set();
+    window.AndroidApp = {
+      openAppForPackage: (uri, pkg) => {
+        window.__launchCalls.push(`pkg:${pkg}:${uri}`);
+        return window.__allowPackages.has(pkg);
+      },
+      openApp: () => { throw new Error('Unsupported link'); },
+      openInstalledApp: pkg => { window.__launchCalls.push(pkg); return window.__canLaunchHome; },
+      openWeb: url => {
+        if (window.__webThrows) throw new Error('No browser');
+        window.__launchCalls.push(url);
+        return true;
+      },
+      hapticFeedback: () => { window.__launchCalls.push('haptic'); }
+    };
+  });
+  await page.goto('/');
+  await selectPlatformEntry(page, page.locator('[data-entry-id="taobao-code"]'));
+  await expect(page.locator('#toast')).toContainText('已打开淘宝首页');
+  expect(await page.evaluate(() => window.__launchCalls)).toContain('com.taobao.taobao');
+
+  await page.evaluate(() => { window.__canLaunchHome = false; });
+  await selectPlatformEntry(page, page.locator('[data-entry-id="cainiao-code"]'));
+  await expect(page.locator('#toast')).toContainText('已改用浏览器打开');
+  expect(await page.evaluate(() => window.__launchCalls)).toContain('https://page.cainiao.com/cn-app-web/identity-code/index.html#/');
+
+  await page.evaluate(() => { window.__webThrows = true; });
+  await selectPlatformEntry(page, page.locator('[data-entry-id="cainiao-code"]'));
+  await expect(page.locator('#toast')).toContainText('暂时无法打开菜鸟');
+
+  // Douyin standard missing -> automatically succeeds via Douyin Lite chain
+  await page.locator('.nav-item[data-page="pickup"]').click();
+  await page.evaluate(() => {
+    window.__launchCalls = [];
+    window.__allowPackages = new Set(['com.ss.android.ugc.aweme.lite']);
+  });
+  await selectPlatformEntry(page, page.locator('[data-entry-id="douyin-query"]'));
+  await expect(page.locator('#toast')).toContainText('已请求打开抖音订单列表');
+  expect(await page.evaluate(() => window.__launchCalls)).toContain('pkg:com.ss.android.ugc.aweme.lite:snssdk2329://ecom_order_list');
+});
+
+test('platform order migrates removed IDs without duplicates; narrow layout respects reduced motion', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  await openPlatformDrawer(page);
+  const first = page.locator('[data-entry-id="taobao-code"]');
+  await first.focus();
+  await first.press('Alt+ArrowDown');
+  await page.evaluate(() => {
+    const orderKey = Object.keys(localStorage).find(key => {
+      try { return Array.isArray(JSON.parse(localStorage.getItem(key)).identity); } catch { return false; }
+    });
+    if (!orderKey) throw new Error('No saved platform order');
+    localStorage.setItem(orderKey, JSON.stringify({ identity: ['jd-code', 'pdd-code', 'pdd-code', 'taobao-code'], pickup: ['jd-query'] }));
+  });
+  await page.reload();
+  expect(await page.locator('#platform-identity-grid .platform-tile').evaluateAll(tiles => tiles.map(tile => tile.dataset.entryId)))
+    .toEqual(['pdd-code', 'taobao-code', 'cainiao-code']);
+  for (const pageName of ['exclusive', 'pickup']) {
+    await page.locator(`.nav-item[data-page="${pageName}"]`).click();
+    await openPlatformDrawer(page);
+    const grid = page.locator(`#platform-${pageName === 'exclusive' ? 'identity' : 'pickup'}-grid`);
+    await grid.scrollIntoViewIfNeeded();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(await grid.locator('.platform-tile-content').first().evaluate(el => getComputedStyle(el).animationName)).toBe('none');
+    const overflowing = await grid.locator('.platform-tile-name, .platform-tile-detail').evaluateAll(nodes => nodes.some(el => el.scrollWidth > el.clientWidth + 1));
+    expect(overflowing).toBe(false);
+    await page.locator('#close-platform-drawer').click();
+  }
+  await expect(page.locator('#platform-pickup-grid .platform-tile').first()).toHaveAttribute('data-entry-id', 'jd-query');
+  await openPlatformDrawer(page);
+  await page.locator('#platform-pickup-section').screenshot({ path: 'test-results/platform-pickup-320.png', animations: 'disabled' });
+});
+
+test('touch sorting moves a platform card without launching it and persists after reload', async ({ page, context }) => {
+  await page.addInitScript(() => {
+    window.__launchCount = 0;
+    window.AndroidApp = { openApp: () => { window.__launchCount++; return true; } };
+  });
+  await page.goto('/');
+  await openPlatformDrawer(page);
+  const sortButton = page.locator('[aria-controls="platform-identity-grid"]');
+  await sortButton.click();
+  await expect(sortButton).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#platform-identity-section').scrollIntoViewIfNeeded();
+  const first = await page.locator('[data-entry-id="taobao-code"]').boundingBox();
+  const last = await page.locator('[data-entry-id="cainiao-code"]').boundingBox();
+  const client = await context.newCDPSession(page);
+  const x = first.x + first.width / 2;
+  const startY = first.y + first.height / 2;
+  const endY = last.y + last.height / 2;
+  await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: startY }] });
+  for (let step = 1; step <= 8; step++) {
+    await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: startY + (endY - startY) * step / 8 }] });
+  }
+  await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect(page.locator('#platform-identity-grid .platform-tile').last()).toHaveAttribute('data-entry-id', 'taobao-code');
+  expect(await page.evaluate(() => window.__launchCount)).toBe(0);
+  await sortButton.click();
+  await expect(sortButton).toHaveAttribute('aria-pressed', 'false');
+  await page.locator('#close-platform-drawer').click();
+  await openPlatformDrawer(page);
+  await expect(page.locator('#platform-identity-grid .platform-tile').last()).toHaveAttribute('data-entry-id', 'taobao-code');
+  expect(await page.evaluate(() => window.__launchCount)).toBe(0);
+  await page.reload();
+  await openPlatformDrawer(page);
+  await expect(page.locator('#platform-identity-grid .platform-tile').last()).toHaveAttribute('data-entry-id', 'taobao-code');
+  await page.locator('#platform-identity-section').screenshot({ path: 'test-results/platform-identity-redesign.png', animations: 'disabled' });
 });

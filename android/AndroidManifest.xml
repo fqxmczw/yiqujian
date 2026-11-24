@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.express.pickup" android:versionCode="8" android:versionName="1.4.0">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.express.pickup" android:versionCode="11" android:versionName="1.4.3">
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
@@ -14,9 +14,18 @@
         <package android:name="com.kuaishou.nebula" />
         <package android:name="com.shizhuang.duapp" />
         <package android:name="com.cainiao.wireless" />
+        <package android:name="com.xingin.xhs" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="taobao" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="tbopen" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="cainiao" />
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
@@ -36,11 +45,27 @@
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="snssdk2329" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
             <data android:scheme="kwai" />
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="ksnebula" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
             <data android:scheme="9dewuapp" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="dewuapp" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="xhsdiscover" />
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />

@@ -4,7 +4,7 @@
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 if ($root -match '[^\x00-\x7F]') {
-    $stage = 'C:\express-pickup-build'
+    $stage = if ($env:EXPRESS_PICKUP_STAGE_DIR) { $env:EXPRESS_PICKUP_STAGE_DIR } else { 'C:\express-pickup-build' }
     New-Item -ItemType Directory -Force -Path "$stage\dist", "$root\dist" | Out-Null
     Copy-Item -LiteralPath "$root\android" -Destination $stage -Recurse -Force
     Copy-Item -LiteralPath "$root\assets" -Destination $stage -Recurse -Force
