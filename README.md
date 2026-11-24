@@ -1,0 +1,138 @@
+# 易取件
+
+[![Build Android APK](https://github.com/fqxmczw/yiqujian/actions/workflows/build-android.yml/badge.svg)](https://github.com/fqxmczw/yiqujian/actions/workflows/build-android.yml)
+[![Latest Release](https://img.shields.io/github/v/release/fqxmczw/yiqujian?label=Release)](https://github.com/fqxmczw/yiqujian/releases/latest)
+
+一款以**线下取件效率**为中心的纯离线快递取件工具。界面极简，底栏仅保留 **「专属码」** 与 **「取件码」** 两项核心功能；零联网权限、无需登录、无广告追踪，所有数据均保存在本机。
+
+> **安装包下载**：直接前往 [Releases](https://github.com/fqxmczw/yiqujian/releases) 下载最新 `yiqujian-v*.apk`（Android 8.0+）。
+
+---
+
+## 功能介绍
+
+### 1. 专属码（高拍仪自助签收 / 地址附码）
+
+- **自动生成高清条码**：输入微信「易递通」等平台的专属码后，本地即时编码生成标准 **Code 128B** 矢量条形码，自动规整大小写与空白字符。
+- **原图截图导入与裁剪**：支持直接导入微信「易递通」专属码截图，自动裁出条码区域展示，兼容仅认微信原图的设备。
+- **多人多码管理**：支持添加本人、家人或朋友的多个专属码，顶部快速切换，并支持长按拖拽调整顺序。
+- **全屏扫描与自动增亮**：点击条码进入全屏放大扫描模式，支持竖屏/横屏一键切换；Android 端自动拉高屏幕亮度并在退出时恢复原亮度，方便对准高拍仪快速出站。
+- **一键复制**：快速复制当前专属码，便于粘贴到收件地址末尾供快递员派件。
+
+### 2. 取件码（多渠道汇总与自动核销）
+
+- **多种录入方式**：
+  - 手动添加（提供「快递驿站」「智能柜」「门卫处」等快捷备注）。
+  - **批量粘贴识别**：一次性粘贴多条快递通知/短信，自动拆分并提取全部待取码与备注。
+  - **剪贴板快捷识别**：复制取件短信后打开应用自动提示一键导入。
+  - **系统文本分享导入**（Android）：在其他应用中选中快递消息分享到本应用即可入库。
+- **Android 自动抓取（全程本地离线）**：
+  - **通知栏自动识别**：基于系统 `NotificationListenerService`，自动捕获微信、支付宝、主流手机系统短信以及菜鸟、淘宝、拼多多、京东、顺丰、丰巢、兔喜、快递100 等应用的到件通知。
+  - **短信增量扫描**：按需授予 `READ_SMS` 权限后，支持按 `1 / 3 / 7 / 14` 天窗口增量扫描取件短信，并支持设置「忽略旧短信」时间基准，防止历史旧短信反复出现。
+- **离线解析与智能降噪（`parser.js`）**：
+  - 自动识别常见格式取件码（如 `8-2-3065`、`A 9036`、纯数字取件码/开箱码/货架号等）并提取快递公司与驿站备注。
+  - 内置过滤规则，自动排除登录/支付验证码、银行动账提醒、广告短信及未到站物流推送。
+  - **签收自动核销与旧码防复活**：收到「已签收 / 已取件 / 已取出 / 已出库」等通知时自动核销对应待取记录；手动标记已取或删除的旧码会自动记录防复活，不会被重复扫入。
+
+### 3. 纯离线与隐私保护
+
+- **零联网权限**：Android 清单未声明 `android.permission.INTERNET`，应用物理上无法发起网络请求或上传短信、通知与个人专属码。
+- **PWA 离线可用**：Web 版内置 Service Worker，首次加载后即可完全离线运行并安装到桌面/主屏幕。
+
+---
+
+## 适用范围
+
+### 适用场景
+
+- 日常频繁使用 **微信「易递通」数字/字母专属码**，在社区驿站、校园驿站通过高拍仪或扫码枪自助签收出站的用户（免去每次翻微信服务号加载页面的步骤）。
+- 网购渠道分散在微信通知、手机短信、菜鸟、丰巢、拼多多、京东等平台，希望在一处统一查看并核销全部待取件码的用户。
+- 需要替家人、室友代取快递，需要频繁切换多个专属码的人群。
+- 重视短信与通知隐私，不愿使用带联网同步或广告推送的商业快递聚合 App 的用户。
+
+### 支持平台与能力对比
+
+| 平台 | 最低要求 | 专属码与条码 | 手动 / 粘贴 / 剪贴板 | 短信扫描 / 通知自动抓取 / 屏幕增亮 |
+|---|---|---|---|---|
+| **Android 客户端（推荐）** | Android 8.0+（API 26） | 完整支持 | 完整支持 | 完整支持（本地离线，按需授权） |
+| **Web / PWA 网页版** | 现代桌面或手机浏览器 | 完整支持 | 完整支持 | 不支持（受浏览器安全沙箱限制） |
+
+### 使用边界与注意事项
+
+- **仅支持静态专属码**：本应用**不会**调用微信或易递通接口，也**不会**伪造、刷新官方时效性动态二维码/动态条码。
+- **首次使用建议试扫**：不同驿站高拍仪及扫码枪策略存在差异，建议首次到常用驿站试扫确认；若个别驿站或快递柜**强制校验官方动态码**（如菜鸟动态身份码、丰巢动态开箱码等），请仍在官方客户端内出示。
+- **Android 后台通知保活**：通知栏自动抓取依赖系统「通知使用权」；部分国产 ROM 需在系统设置中关闭省电限制或允许后台运行，避免通知监听服务被系统回收。
+- **覆盖升级说明**：通过本仓库正式 Release 发布的 APK 使用同一签名证书构建，后续可直接覆盖安装升级而不丢失本地已保存的数据（卸载应用则会清空本机数据）。
+
+---
+
+## 下载与安装
+
+1. 打开 [Releases 页面](https://github.com/fqxmczw/yiqujian/releases)，下载最新版本的 `yiqujian-v*.apk`。
+2. 在 Android 8.0 及以上手机上点击安装包，按提示允许安装未知来源应用即可完成安装。
+3. 首次打开后，在「专属码」页填写你的专属码（或导入微信条码截图）；如需自动抓取取件码，可在「取件码」页按引导开启短信扫描或通知栏监听权限。
+
+---
+
+## GitHub 自动构建与发版
+
+本项目已接入 GitHub Actions（`.github/workflows/build-android.yml`），无需在本地配置 Android SDK 即可在云端自动测试并构建签名 APK：
+
+- **日常提交自动构建**：每次向 `main` 分支推送代码或发起 PR，Workflow 会自动运行单元测试并构建 APK，构建产物保存在仓库 **Actions -> Build Android APK** 页面的 Artifacts 中（保留 90 天）。
+- **正式发布 Release（方式一：推送版本标签）**：
+  1. 更新 `android/AndroidManifest.xml` 中的 `android:versionCode` 和 `android:versionName`。
+  2. 提交并推送 `v*` 标签，例如：
+     ```bash
+     git tag v1.3.2
+     git push origin main v1.3.2
+     ```
+  3. GitHub Actions 将自动编译、签名、校验并创建对应的 Release，附带 APK 与 `.sha256` 校验文件。
+- **正式发布 Release（方式二：网页一键触发）**：
+  1. 进入仓库 **Actions -> Build Android APK -> Run workflow**。
+  2. 勾选 **「同时发布为 GitHub Release」** 后运行，即可按 `AndroidManifest.xml` 中的版本号自动打包并发布。
+- **签名密钥安全机制**：
+  - 正式签名证书不进入代码仓库，而是通过仓库 Secrets（`ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_PASSWORD`、`ANDROID_KEY_ALIAS`）在构建时安全注入并于构建结束后清理。
+  - Fork 仓库或未配置 Secrets 的 PR 构建会自动回退至临时自签证书，确保 CI 流程完整可验证。
+
+---
+
+## 本地开发与验证
+
+需要 Node.js 18+（网页运行与测试）与 Python 3（Android 打包辅助脚本）。
+
+```bash
+# 启动本地网页服务（默认 http://localhost:4173）
+npm start
+
+# 运行离线解析与条码单元测试
+npm test
+
+# 运行 Playwright 端到端界面测试（需先 npm install）
+npm run test:ui
+```
+
+### 本地构建 Android APK
+
+- **Linux / macOS**：配置 `ANDROID_HOME`（Android SDK 35 + Build-Tools 35.0.0）与 JDK 17 后运行：
+  ```bash
+  bash build-android.sh
+  ```
+- **Windows**：在项目根目录准备便携 `.jdk/`（JDK 17）与 `.android-sdk/`（SDK 35）后运行：
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File build-android.ps1
+  ```
+
+---
+
+## 项目结构
+
+- `index.html`：双底栏页面与管理弹窗结构。
+- `styles.css`：移动端优先离线界面样式。
+- `barcode.js`：Code 128B 条形码编码与 SVG 渲染器。
+- `parser.js`：离线快递短信与通知解析、去噪及签收核销引擎。
+- `app.js`：交互状态、本地持久化、旧码防复活历史与 Android 原生桥接。
+- `sw.js` / `manifest.webmanifest`：PWA 离线缓存与应用清单。
+- `android/`：轻量级原生 Android WebView 封装工程（无 Gradle 依赖，直接通过 `aapt2` + `javac` + `d8` + `zipalign` + `apksigner` 构建）。
+- `sync-android.py` / `pack-android.py` / `build-android.sh` / `build-android.ps1`：跨平台打包脚本。
+- `.github/workflows/build-android.yml`：GitHub Actions 自动测试、构建与发版流水线。
+- `tests/`：单元测试（`logic.test.js`）与 Playwright UI 回归测试（`app.spec.js`）。

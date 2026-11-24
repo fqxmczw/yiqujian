@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f8fa">
+  <meta name="color-scheme" content="light only">
+  <meta name="description" content="快递取件：专属码与取件码，随时打开，轻松取件。">
+  <title>快递取件</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/app-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/app-icon.png">
+  <link rel="stylesheet" href="styles.css">
+  <script src="barcode.js" defer></script>
+  <script src="parser.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="icon-box" viewBox="0 0 24 24"><path d="m4 7 8-4 8 4v10l-8 4-8-4V7Z"/><path d="m4 7 8 4 8-4M12 11v10m-4-16 8 4"/></symbol>
+    <symbol id="icon-ticket" viewBox="0 0 24 24"><path d="M4 5h16v5a2 2 0 0 0 0 4v5H4v-5a2 2 0 0 0 0-4V5Z"/><path d="M14 8v2m0 4v2"/></symbol>
+    <symbol id="icon-scan" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M7 12h10"/></symbol>
+    <symbol id="icon-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 3h6l1 4H8l1-4Zm-3 4 1 14h10l1-14M10 11v6m4-6v6"/></symbol>
+    <symbol id="icon-pencil" viewBox="0 0 24 24"><path d="m4 16-1 5 5-1L20 8l-4-4L4 16Zm10-10 4 4"/></symbol>
+    <symbol id="icon-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="icon-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.5"/><path d="m21 16-5-5-6 6-2-2-5 5"/></symbol>
+    <symbol id="icon-rotate" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></symbol>
+    <symbol id="icon-sparkle" viewBox="0 0 24 24"><path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z"/><path d="M19 3v3m-1.5-1.5h3M5 17v3m-1.5-1.5h3"/></symbol>
+    <symbol id="icon-sms" viewBox="0 0 24 24"><path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H9l-5 4V6Z"/><path d="M8 9h8M8 13h5"/></symbol>
+    <symbol id="icon-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9Z"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+    <symbol id="icon-clipboard" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/></symbol>
+  </svg>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand-mark"><svg><use href="#icon-box"/></svg></div>
+      <h1 id="page-title">我的专属码</h1>
+      <button id="header-add-exclusive" class="header-pill-button" type="button" aria-label="添加或更换专属码">
+        <svg><use href="#icon-plus"/></svg><span>放我的码</span>
+      </button>
+    </header>
+
+    <main>
+      <section id="exclusive-page" class="page" aria-labelledby="exclusive-heading">
+        <h2 id="exclusive-heading" class="sr-only">我的专属码</h2>
+        <div class="illustration-wrap">
+          <img class="locker-illustration" src="assets/pickup-lockers.png" alt="居民在智能快递柜前取件" width="1361" height="674">
+        </div>
+
+        <div id="exclusive-switcher" class="exclusive-switcher" role="tablist" aria-label="专属码列表"></div>
+
+        <div id="exclusive-card" class="code-card exclusive-card" hidden>
+          <div class="exclusive-card-bar">
+            <span id="exclusive-owner-badge" class="owner-badge">我的专属码</span>
+            <button id="edit-exclusive" class="subtle-action-button" type="button">
+              <svg><use href="#icon-pencil"/></svg><span>编辑 / 换码</span>
+            </button>
+          </div>
+          <button id="enlarge-exclusive" class="barcode-button" type="button" aria-label="放大专属码">
+            <span id="exclusive-barcode-stage" class="barcode-paper"></span>
+            <span id="exclusive-number" class="exclusive-number"></span>
+            <span class="enlarge-hint">点击可放大扫描</span>
+          </button>
+        </div>
+
+        <div id="exclusive-empty" class="code-card exclusive-empty">
+          <div class="empty-mini-icon"><svg><use href="#icon-scan"/></svg></div>
+          <h3>放入你的专属码</h3>
+          <p>输入微信「易递通」里的专属码，或直接导入条码截图，取件时一扫即出。</p>
+          <button id="empty-add-exclusive" class="primary-button" type="button">
+            <svg><use href="#icon-plus"/></svg><span>添加我的专属码</span>
+          </button>
+        </div>
+
+        <p class="ydt-desc">专属码：条形码、数字专属码可用于高拍仪签收。数字专属码可填写在收件地址中，快递员即可使用数字专属码派件。</p>
+
+        <div class="ydt-help-wrap">
+          <button id="open-help" class="ydt-help-link" type="button">遇到问题，如何出站？</button>
+        </div>
+
+        <p class="privacy-note"><svg><use href="#icon-lock"/></svg>无需登录，信息仅保存在本机</p>
+      </section>
+
+      <section id="pickup-page" class="page" aria-labelledby="pickup-heading" hidden>
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">取件不翻聊天记录</p>
+            <h2 id="pickup-heading">我的取件码</h2>
+          </div>
+          <div class="pickup-head-actions">
+            <button id="open-smart-import" class="smart-import-pill" type="button" aria-label="智能导入取件码">
+              <svg><use href="#icon-sparkle"/></svg><span>智能导入</span>
+            </button>
+            <button id="add-code" class="icon-button add-button" type="button" aria-label="添加取件码"><svg><use href="#icon-plus"/></svg></button>
+          </div>
+        </div>
+
+        <div id="auto-import-bar" class="auto-import-bar" aria-label="快捷自动导入">
+          <button id="quick-sms-btn" class="quick-import-chip" type="button">
+            <svg><use href="#icon-sms"/></svg><span id="quick-sms-label">扫描短信</span>
+          </button>
+          <button id="quick-notify-btn" class="quick-import-chip" type="button">
+            <svg><use href="#icon-bell"/></svg><span id="quick-notify-label">通知抓取</span>
+          </button>
+          <button id="quick-paste-btn" class="quick-import-chip" type="button">
+            <svg><use href="#icon-clipboard"/></svg><span>粘贴识别</span>
+          </button>
+        </div>
+
+        <div id="clipboard-banner" class="clipboard-banner" hidden role="region" aria-label="剪贴板取件码提示">
+          <div class="clipboard-banner-info">
+            <span class="clipboard-banner-tag">剪贴板识别</span>
+            <strong id="clipboard-banner-code" class="clipboard-banner-code"></strong>
+            <span id="clipboard-banner-label" class="clipboard-banner-label"></span>
+          </div>
+          <div class="clipboard-banner-actions">
+            <button id="clipboard-import-btn" class="clipboard-import-btn" type="button">一键导入</button>
+            <button id="clipboard-dismiss-btn" class="icon-button clipboard-dismiss-btn" type="button" aria-label="忽略"><svg><use href="#icon-close"/></svg></button>
+          </div>
+        </div>
+
+        <div id="empty-state" class="empty-state">
+          <div class="empty-illustration">
+            <div class="empty-orbit orbit-one"></div><div class="empty-orbit orbit-two"></div>
+            <svg><use href="#icon-ticket"/></svg>
+            <span class="mini-box"><svg><use href="#icon-box"/></svg></span>
+          </div>
+          <h3>把取件码放在这里</h3>
+          <p>提前保存，取件时直接出示<br>不用再翻短信和聊天记录</p>
+          <div class="empty-actions">
+            <button id="empty-add-code" class="primary-button" type="button"><svg><use href="#icon-plus"/></svg>添加取件码</button>
+            <button id="empty-smart-import" class="secondary-button empty-import-button" type="button"><svg><use href="#icon-sparkle"/></svg>粘贴短信 / 自动导入</button>
+          </div>
+        </div>
+        <div id="pending-list-bar" class="pending-list-bar" hidden>
+          <span id="pending-list-count">待取 0 件</span>
+          <button id="mark-all-picked" class="text-action mark-all-btn" type="button">
+            <svg><use href="#icon-check"/></svg><span>全部标为已取</span>
+          </button>
+        </div>
+        <div id="code-list" class="code-list" aria-live="polite"></div>
+        <details id="history-section" class="history-section" hidden>
+          <summary class="history-summary">
+            <span id="history-summary-label">已取件记录 (0)</span>
+            <span class="history-summary-tip">展开 / 恢复</span>
+          </summary>
+          <div class="history-toolbar">
+            <span>已取件和已删除的旧短信码不再重复识别</span>
+            <button id="clear-history-btn" class="text-action delete-action" type="button">清空记录</button>
+          </div>
+          <div id="history-list" class="history-list"></div>
+        </details>
+        <p class="privacy-note"><svg><use href="#icon-lock"/></svg>数据仅保存在当前设备</p>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="主要功能">
+      <button class="nav-item active" type="button" data-page="exclusive" aria-current="page">
+        <svg><use href="#icon-scan"/></svg><span>专属码</span>
+      </button>
+      <button class="nav-item" type="button" data-page="pickup">
+        <svg><use href="#icon-ticket"/></svg><span>取件码</span><span id="nav-count" class="nav-count" hidden></span>
+      </button>
+    </nav>
+  </div>
+
+  <dialog id="barcode-dialog" class="barcode-dialog" aria-label="全屏专属码扫描">
+    <div class="scan-toolbar">
+      <button id="toggle-scan-orientation" class="scan-tool-button" type="button">
+        <svg><use href="#icon-rotate"/></svg><span id="orientation-label">横屏显示</span>
+      </button>
+      <button class="icon-button close-dialog" type="button" aria-label="关闭"><svg><use href="#icon-close"/></svg></button>
+    </div>
+    <div id="fullscreen-scan-stage" class="fullscreen-scan-stage is-rotated" role="button" tabindex="0" aria-label="点击可缩小">
+      <div class="scan-rotator">
+        <div id="fullscreen-barcode-stage" class="fullscreen-barcode-paper"></div>
+        <strong id="fullscreen-number" class="fullscreen-number"></strong>
+        <span class="fullscreen-shrink-hint">点击可缩小</span>
+      </div>
+    </div>
+    <div class="scan-footer">
+      <button id="fullscreen-copy" class="secondary-button scan-copy-button" type="button">
+        <svg><use href="#icon-copy"/></svg><span>复制专属码</span>
+      </button>
+    </div>
+  </dialog>
+
+  <dialog id="exclusive-dialog" class="edit-dialog">
+    <form id="exclusive-form">
+      <div class="dialog-header">
+        <h2 id="exclusive-dialog-title">放入我的专属码</h2>
+        <button class="icon-button close-dialog" type="button" aria-label="关闭"><svg><use href="#icon-close"/></svg></button>
+      </div>
+      <input id="exclusive-edit-id" type="hidden">
+      <label for="exclusive-code-input">专属码 <span>必填</span></label>
+      <input id="exclusive-code-input" name="exclusiveCode" type="text" maxlength="32" autocomplete="off" autocapitalize="characters" placeholder="例如：A12BC345" required>
+      <p id="exclusive-code-error" class="field-error" role="alert"></p>
+
+      <label for="exclusive-label-input">归属 / 备注 <span>选填</span></label>
+      <input id="exclusive-label-input" name="exclusiveLabel" type="text" maxlength="16" autocomplete="off" placeholder="例如：我的、家人、室友">
+      <div class="quick-labels" aria-label="快捷归属">
+        <button type="button" data-exclusive-label="我的">我的</button>
+        <button type="button" data-exclusive-label="家人">家人</button>
+        <button type="button" data-exclusive-label="室友">室友</button>
+        <button type="button" data-exclusive-label="公司">公司</button>
+      </div>
+
+      <div class="barcode-source-section">
+        <div class="barcode-source-header">
+          <span>条码预览</span>
+          <span id="barcode-source-badge" class="source-badge">自动生成标准条码</span>
+        </div>
+        <div id="barcode-preview-box" class="barcode-preview-box"></div>
+        <input id="barcode-file-input" type="file" accept="image/*" hidden>
+        <div class="barcode-source-actions">
+          <button id="import-barcode-btn" class="secondary-button small-button" type="button">
+            <svg><use href="#icon-image"/></svg><span>导入微信条码截图</span>
+          </button>
+          <button id="clear-barcode-image" class="text-action" type="button" hidden>恢复自动条码</button>
+        </div>
+        <p class="source-tip">输入专属码即自动生成高清 Code 128 条码；也可选择微信「易递通」截图自动裁出条码。</p>
+      </div>
+
+      <button class="primary-button save-code" type="submit"><svg><use href="#icon-check"/></svg>保存专属码</button>
+      <button id="delete-exclusive-btn" class="text-action delete-action delete-exclusive-btn" type="button" hidden>
+        <svg><use href="#icon-trash"/></svg><span>删除这个专属码</span>
+      </button>
+    </form>
+  </dialog>
+
+  <dialog id="help-dialog" class="edit-dialog help-dialog">
+    <div class="help-content">
+      <div class="dialog-header">
+        <h2>遇到问题，如何出站？</h2>
+        <button class="icon-button close-dialog" type="button" aria-label="关闭"><svg><use href="#icon-close"/></svg></button>
+      </div>
+      <ol class="help-steps">
+        <li><strong>获取自己的专属码</strong>：打开微信 → 进入「易递通」服务号 → 底部「快递服务」→「我的专属码」，把专属码填入本软件即可。</li>
+        <li><strong>高拍仪扫描技巧</strong>：点击条码进入全屏竖向放大模式，屏幕会自动调亮，对准高拍仪扫描区保持 10–15 厘米距离。</li>
+        <li><strong>多人切换使用</strong>：点击右上角「放我的码」可随时添加家人或朋友的专属码，一键切换。</li>
+        <li><strong>若驿站仅认微信原图</strong>：在「编辑 / 换码」里点「导入微信条码截图」直接导入原版条码图，或切到底部「取件码」页出示取件码。</li>
+      </ol>
+      <button class="primary-button close-dialog" type="button">我知道了</button>
+    </div>
+  </dialog>
+
+  <dialog id="edit-dialog" class="edit-dialog">
+    <form id="code-form">
+      <div class="dialog-header"><h2 id="edit-title">添加取件码</h2><button class="icon-button close-dialog" type="button" aria-label="关闭"><svg><use href="#icon-close"/></svg></button></div>
+      <input id="edit-id" type="hidden">
+      <label for="code-input">取件码 <span>必填</span></label>
+      <input id="code-input" name="code" type="text" maxlength="40" autocomplete="off" placeholder="例如：8-2-3065" required>
+      <p id="code-error" class="field-error" role="alert"></p>
+      <label for="label-input">备注 <span>选填</span></label>
+      <input id="label-input" name="label" type="text" maxlength="24" autocomplete="off" placeholder="例如：中通快递 · 北门驿站">
+      <div class="quick-labels" aria-label="快捷备注">
+        <button type="button" data-label="快递驿站">快递驿站</button><button type="button" data-label="智能柜">智能柜</button><button type="button" data-label="门卫处">门卫处</button>
+      </div>
+      <button class="primary-button save-code" type="submit"><svg><use href="#icon-check"/></svg>保存取件码</button>
+    </form>
+  </dialog>
+
+  <dialog id="delete-dialog" class="delete-dialog">
+    <div class="delete-icon"><svg><use href="#icon-trash"/></svg></div>
+    <h2>删除这个取件码？</h2><p>删除后将无法恢复。</p>
+    <input id="delete-id" type="hidden">
+    <div class="dialog-actions"><button id="cancel-delete" class="secondary-button" type="button">取消</button><button id="confirm-delete" class="danger-button" type="button">删除</button></div>
+  </dialog>
+
+  <dialog id="import-dialog" class="edit-dialog import-dialog" aria-labelledby="import-dialog-title">
+    <div class="import-dialog-body">
+      <div class="dialog-header">
+        <h2 id="import-dialog-title">智能识别导入</h2>
+        <button class="icon-button close-dialog" type="button" aria-label="关闭"><svg><use href="#icon-close"/></svg></button>
+      </div>
+
+      <div class="import-tabs" role="tablist" aria-label="导入方式">
+        <button id="tab-import-paste" class="import-tab active" type="button" role="tab" aria-selected="true" data-import-tab="paste">文本 / 剪贴板</button>
+        <button id="tab-import-auto" class="import-tab" type="button" role="tab" aria-selected="false" data-import-tab="auto">短信 &amp; 通知自动抓</button>
+      </div>
+
+      <section id="import-panel-paste" class="import-panel" role="tabpanel" aria-labelledby="tab-import-paste">
+        <label class="import-label" for="import-text-input">粘贴快递短信或微信消息 <span>支持多条批量</span></label>
+        <textarea id="import-text-input" class="import-textarea" rows="4" placeholder="粘贴一条或多条快递短信、微信「易递通」/菜鸟/丰巢通知，自动提取取件码和驿站备注，自动过滤验证码…"></textarea>
+        <div class="import-toolbar">
+          <div class="import-toolbar-btns">
+            <button id="import-read-clipboard" class="secondary-button small-button" type="button">
+              <svg><use href="#icon-clipboard"/></svg><span>读取剪贴板</span>
+            </button>
+            <button id="import-clear-text" class="text-action" type="button">清空</button>
+          </div>
+          <span id="import-parse-summary" class="import-parse-summary">粘贴后自动识别</span>
+        </div>
+
+        <div id="import-preview-list" class="import-preview-list" aria-live="polite"></div>
+        <button id="import-confirm-btn" class="primary-button save-code" type="button" disabled>
+          <svg><use href="#icon-check"/></svg><span>导入选中的取件码</span>
+        </button>
+      </section>
+
+      <section id="import-panel-auto" class="import-panel" role="tabpanel" aria-labelledby="tab-import-auto" hidden>
+        <div class="auto-card">
+          <div class="auto-card-head">
+            <div class="auto-card-title">
+              <svg><use href="#icon-sms"/></svg>
+              <strong>短信增量扫描</strong>
+            </div>
+            <span id="sms-status-pill" class="status-pill">未授权</span>
+          </div>
+          <p class="auto-card-desc">打开软件或手动点击时本地扫描收件箱快递短信，无需后台常驻，系统清理后台也不漏。</p>
+          <div class="sms-days-row" id="sms-days-group" aria-label="扫描天数">
+            <button type="button" class="day-chip" data-sms-days="1">今天</button>
+            <button type="button" class="day-chip" data-sms-days="3">近3天</button>
+            <button type="button" class="day-chip active" data-sms-days="7">近7天</button>
+            <button type="button" class="day-chip" data-sms-days="14">近14天</button>
+          </div>
+          <label class="switch-row">
+            <span>打开应用时自动扫描新短信</span>
+            <input id="sms-auto-toggle" class="toggle-input" type="checkbox" checked>
+          </label>
+          <div class="auto-card-actions">
+            <button id="run-sms-scan-btn" class="primary-button small-primary" type="button">立即扫描短信</button>
+            <button id="ignore-old-sms-btn" class="secondary-button small-button" type="button">只认此后新短信</button>
+          </div>
+          <div id="sms-baseline-row" class="sms-baseline-row" hidden>
+            <span id="sms-baseline-text"></span>
+            <button id="reset-sms-baseline-btn" class="text-action" type="button">重置</button>
+          </div>
+          <p id="sms-last-result" class="auto-card-foot">本地正则解析，自动忽略验证码，已取件或已删除的旧码不再复活。</p>
+        </div>
+
+        <div class="auto-card">
+          <div class="auto-card-head">
+            <div class="auto-card-title">
+              <svg><use href="#icon-bell"/></svg>
+              <strong>通知栏自动抓取</strong>
+            </div>
+            <span id="notify-status-pill" class="status-pill">未开启</span>
+          </div>
+          <p class="auto-card-desc">自动抓取微信、支付宝、菜鸟、拼多多、淘宝、京东、顺丰、丰巢及短信取件通知，无需登录账号。</p>
+          <label id="notify-toggle-row" class="switch-row">
+            <span>收到取件通知自动入库</span>
+            <input id="notify-enabled-toggle" class="toggle-input" type="checkbox" checked>
+          </label>
+          <div class="auto-card-actions">
+            <button id="open-notify-settings-btn" class="primary-button small-primary" type="button">去开启通知使用权</button>
+            <button id="open-app-settings-btn" class="secondary-button small-button" type="button">打开应用信息</button>
+          </div>
+          <p id="notify-capture-summary" class="auto-card-foot">开启后通知一弹出即离线识别入库。</p>
+          <details class="oem-guide">
+            <summary>首次开启通知使用权步骤</summary>
+            <ol>
+              <li>部分安卓 13 及以上机型若无法直接勾选，先点上方「打开应用信息」→ 右上角 <strong>⋮</strong>（或底部更多）→ 开启「允许受限制的设置」。</li>
+              <li>返回点「去开启通知使用权」→ 打开「快递取件」；如系统提示允许读取通知类短信或后台运行，按提示放行即可。</li>
+              <li>在微信「设置 → 消息通知」确认开启「通知显示消息详情」，且易递通等服务号未设为免打扰。</li>
+            </ol>
+          </details>
+        </div>
+
+        <p class="auto-privacy-foot"><svg><use href="#icon-lock"/></svg>纯本地离线解析 · 本软件无联网权限，绝不上传任何内容</p>
+      </section>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"><svg><use href="#icon-check"/></svg><span></span></div>
+</body>
+</html>

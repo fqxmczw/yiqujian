@@ -1,0 +1,14 @@
+{
+  "name": "express-pickup",
+  "version": "1.0.0",
+  "private": true,
+  "description": "专属码与取件码离线应用",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test tests/logic.test.js",
+    "test:ui": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1"
+  }
+}

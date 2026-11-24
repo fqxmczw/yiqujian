@@ -1,0 +1,15 @@
+node_modules/
+test-results/
+playwright-report/
+__pycache__/
+.android-sdk/
+.jdk/
+.gradle/
+.tools/
+.codex-attachments/
+android/assets/
+android/build/
+android/*.keystore
+*.keystore
+*.jks
+dist/
