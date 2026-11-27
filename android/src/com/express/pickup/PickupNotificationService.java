@@ -71,8 +71,6 @@ public final class PickupNotificationService extends NotificationListenerService
 
             Notification notification = sbn.getNotification();
             if (notification == null) return;
-            if ((notification.flags & Notification.FLAG_GROUP_SUMMARY) != 0) return;
-
             Bundle extras = notification.extras;
             if (extras == null) return;
 
@@ -82,9 +80,12 @@ public final class PickupNotificationService extends NotificationListenerService
 
             String combined = TextUtils.isEmpty(title) ? body : (title + "\n" + body);
             String knownApp = KNOWN_PACKAGES.get(pkg);
+            boolean isGroupSummary = (notification.flags & Notification.FLAG_GROUP_SUMMARY) != 0;
+            boolean hasCodeKeyword = PickupMessageStore.hasStrongPickupKeyword(combined);
+            if (isGroupSummary && !hasCodeKeyword) return;
             boolean accepted = knownApp != null
                     ? PickupMessageStore.looksLikePickupMessage(combined)
-                    : PickupMessageStore.hasStrongPickupKeyword(combined);
+                    : hasCodeKeyword;
             if (!accepted) return;
 
             String appLabel = knownApp != null ? knownApp : "通知";
@@ -95,18 +96,48 @@ public final class PickupNotificationService extends NotificationListenerService
         }
     }
 
+    @Override
+    public void onListenerDisconnected() {
+        try {
+            requestRebind(new ComponentName(this, PickupNotificationService.class));
+        } catch (Throwable ignored) {
+            // Android may rebind after the next system notification instead.
+        }
+    }
+
     private static String buildNotificationBody(Bundle extras) {
         StringBuilder sb = new StringBuilder();
         appendUniqueLine(sb, charSeqToString(extras.getCharSequence(Notification.EXTRA_BIG_TEXT)));
         appendUniqueLine(sb, charSeqToString(extras.getCharSequence(Notification.EXTRA_TEXT)));
         appendUniqueLine(sb, charSeqToString(extras.getCharSequence(Notification.EXTRA_SUB_TEXT)));
+        appendUniqueLine(sb, charSeqToString(extras.getCharSequence(Notification.EXTRA_INFO_TEXT)));
+        appendUniqueLine(sb, charSeqToString(extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)));
         CharSequence[] lines = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES);
         if (lines != null) {
             for (CharSequence line : lines) {
                 appendUniqueLine(sb, charSeqToString(line));
             }
         }
+        appendMessagingStyleLines(sb, extras);
         return sb.toString().trim();
+    }
+
+    private static void appendMessagingStyleLines(StringBuilder sb, Bundle extras) {
+        try {
+            if (android.os.Build.VERSION.SDK_INT < 24) return;
+            android.os.Parcelable[] messages = extras.getParcelableArray(Notification.EXTRA_MESSAGES);
+            if (messages == null) return;
+            for (android.os.Parcelable message : messages) {
+                if (!(message instanceof Bundle)) continue;
+                Bundle item = (Bundle) message;
+                appendUniqueLine(sb, charSeqToString(item.getCharSequence("text")));
+                if (item.containsKey("sender")) {
+                    appendUniqueLine(sb, charSeqToString(item.getCharSequence("sender")));
+                }
+            }
+        } catch (Throwable ignored) {
+            // Some OEMs replace framework notification extras with custom values.
+        }
     }
 
     private static void appendUniqueLine(StringBuilder sb, String line) {

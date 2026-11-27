@@ -255,6 +255,59 @@ test('pickup codes persist and support edit, duplicate validation, and delete', 
   await expect(page.locator('.pickup-card')).toHaveCount(0);
 });
 
+test('opens stacked pickup cards from the front card and preserves the open group after pickup', async ({ page }) => {
+  await page.addInitScript(() => {
+    const entries = [
+      ['Q9-29', '递管家'],
+      ['N7-1', '智能柜'],
+      ['G9-1', ' 递管家 '],
+      ['G9-2', '递管家'],
+      ['G9-3', '递管家']
+    ];
+    localStorage.setItem('pickupCodes.v1', JSON.stringify(entries.map(([code, label]) => ({
+      id: code, code, label, createdAt: Date.now()
+    }))));
+  });
+  await page.goto('/#pickup');
+  const groups = page.locator('.pickup-group');
+  await expect(groups.locator('.pickup-label')).toHaveText(['递管家', '智能柜']);
+  const group = groups.first();
+  const toggle = group.locator('.pickup-stack-toggle');
+  const frontCard = group.locator('.pickup-stack-front .pickup-card');
+  await expect(group.locator('.pickup-stack-layer')).toHaveCount(3);
+  await expect(group.locator('.pickup-code:visible')).toHaveText(['Q9-29']);
+  await group.evaluate(element => {
+    const animations = [...element.getAnimations(), ...element.closest('.page').getAnimations()];
+    return Promise.all(animations.map(animation => animation.finished));
+  });
+  const frontPosition = await frontCard.boundingBox();
+  await frontCard.locator('.pickup-code').click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(group.locator('.pickup-stack-surface .pickup-card:visible')).toHaveCount(4);
+  await expect(group.locator('.pickup-code:visible')).toHaveText(['Q9-29', 'G9-1', 'G9-2', 'G9-3']);
+  expect(await frontCard.boundingBox()).toEqual(frontPosition);
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(group.locator('.pickup-code:visible')).toHaveText(['Q9-29']);
+  expect(await frontCard.boundingBox()).toEqual(frontPosition);
+  await toggle.focus();
+  await toggle.press('Enter');
+  for (const code of ['G9-3', 'G9-2']) {
+    await group.getByRole('button', { name: `标记取件码 ${code} 为已取件`, exact: true }).click();
+    await expect(group.locator('.pickup-stack-layer')).toHaveCount(code === 'G9-3' ? 2 : 1);
+  }
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(group.locator('.pickup-code:visible')).toHaveText(['Q9-29', 'G9-1']);
+  await expect(page.locator('#pending-list-count')).toHaveText('待取 3 件');
+  await toggle.click();
+  await expect(group.locator('.pickup-code:visible')).toHaveText(['Q9-29']);
+  await toggle.click();
+  await group.getByRole('button', { name: '标记取件码 G9-1 为已取件', exact: true }).click();
+  await expect(toggle).toHaveCount(0);
+  await expect(group.locator('.pickup-stack-layer')).toHaveCount(0);
+  await expect(group.locator('.pickup-code:visible')).toHaveText(['Q9-29']);
+});
+
 test('escapes stored labels, fits small phones, and works offline', async ({ page, context }) => {
   test.setTimeout(60000);
   await page.goto('/#pickup');

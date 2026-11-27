@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.express.pickup" android:versionCode="20" android:versionName="1.4.12">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.express.pickup" android:versionCode="30" android:versionName="1.4.22">
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />

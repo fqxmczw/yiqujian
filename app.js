@@ -824,6 +824,13 @@
 
   function renderCodes() {
     const list = $('#code-list');
+    const expandedLabels = new Set([...list.querySelectorAll('.pickup-stack.is-expanded')].map(stack => stack.dataset.label));
+    const groups = new Map();
+    for (const item of codes) {
+      const label = item.label.trim();
+      if (!groups.has(label)) groups.set(label, []);
+      groups.get(label).push(item);
+    }
     $('#empty-state').hidden = codes.length > 0;
     $('#add-code').hidden = codes.length === 0;
     pendingListBar.hidden = codes.length === 0;
@@ -838,17 +845,69 @@
       share: '分享导入',
       paste: '识别导入'
     };
-    list.innerHTML = codes.map(item => {
-      const code = escapeHTML(item.code);
-      const label = escapeHTML(item.label || '快递取件');
+    const dateFormat = new Intl.DateTimeFormat('zh-CN', { month: 'numeric', day: 'numeric' });
+    const renderCodeInfo = item => {
       const sourceName = sourceLabels[item.source] || '';
       const sourceBadge = sourceName ? `<span class="pickup-source-tag">${sourceName}</span>` : '';
-      const date = Number.isFinite(item.createdAt) ? new Intl.DateTimeFormat('zh-CN', { month: 'numeric', day: 'numeric' }).format(item.createdAt) : '';
+      const date = Number.isFinite(item.createdAt) ? dateFormat.format(item.createdAt) : '';
+      return `<span class="pickup-code-info"><strong class="pickup-code">${escapeHTML(item.code)}</strong><span class="pickup-meta">${sourceBadge}<time class="pickup-date">${date}</time></span></span>`;
+    };
+    const renderItem = item => {
+      const code = escapeHTML(item.code);
+      const id = escapeHTML(item.id);
       return `<article class="pickup-card">
-        <div class="pickup-card-top"><span class="pickup-label-icon"><svg><use href="#icon-box"/></svg></span><span class="pickup-label">${label}</span><span class="pickup-meta">${sourceBadge}<time class="pickup-date">${date}</time></span></div>
-        <div class="pickup-code-row"><strong class="pickup-code">${code}</strong><button class="copy-icon-button" type="button" data-action="copy" data-id="${item.id}" aria-label="复制取件码 ${code}"><svg><use href="#icon-copy"/></svg></button></div>
-        <div class="pickup-card-bottom"><div><button class="text-action" type="button" data-action="edit" data-id="${item.id}"><svg><use href="#icon-pencil"/></svg>编辑</button> <button class="text-action delete-action" type="button" data-action="delete" data-id="${item.id}"><svg><use href="#icon-trash"/></svg>删除</button></div><button class="mark-picked-btn" type="button" data-action="picked" data-id="${item.id}" aria-label="标记取件码 ${code} 为已取件"><svg><use href="#icon-check"/></svg>已取件</button></div>
+        <div class="pickup-code-row">
+          ${renderCodeInfo(item)}
+          <button class="copy-icon-button" type="button" data-action="copy" data-id="${id}" aria-label="复制取件码 ${code}"><svg><use href="#icon-copy"/></svg></button>
+        </div>
+        <div class="pickup-card-bottom"><div><button class="text-action" type="button" data-action="edit" data-id="${id}"><svg><use href="#icon-pencil"/></svg>编辑</button> <button class="text-action delete-action" type="button" data-action="delete" data-id="${id}"><svg><use href="#icon-trash"/></svg>删除</button></div><button class="mark-picked-btn" type="button" data-action="picked" data-id="${id}" aria-label="标记取件码 ${code} 为已取件"><svg><use href="#icon-check"/></svg>已取件</button></div>
       </article>`;
+    };
+    list.innerHTML = [...groups].map(([label, items], index) => {
+      const header = `
+        <span class="pickup-label-icon" aria-hidden="true"><svg><use href="#icon-box"/></svg></span>
+        <span class="pickup-label">${escapeHTML(label || '无备注')}</span>
+        <span class="pickup-group-count">${items.length} 件</span>`;
+      if (items.length > 1) {
+        const expanded = expandedLabels.has(label);
+        const bodyId = `pickup-stack-body-${index}`;
+        const remaining = items.slice(1);
+        const layerSpacing = Math.min(6, 60 / remaining.length);
+        const lastRowIndex = remaining.length - 1;
+        const stepDelay = lastRowIndex > 0 ? Math.min(55, 280 / lastRowIndex) : 0;
+        const lastDelay = stepDelay * lastRowIndex;
+        const layers = [];
+        const rows = [];
+        remaining.forEach((item, rowIndex) => {
+          const forwardDelay = rowIndex * stepDelay;
+          const delays = `--open-delay:${forwardDelay}ms;--close-delay:${lastDelay - forwardDelay}ms`;
+          const inset = Math.min(26, 8 + 6 * rowIndex);
+          const bottom = (lastRowIndex - rowIndex) * layerSpacing;
+          layers.push(`<span class="pickup-stack-layer" style="${delays};--layer-inset:${inset}px;--layer-bottom:${bottom}px"></span>`);
+          rows.push(`<div class="pickup-stack-row" style="${delays}"><div class="pickup-stack-row-clip">${renderItem(item)}</div></div>`);
+        });
+        return `<section class="pickup-group pickup-stack${expanded ? ' is-expanded' : ''}" data-label="${escapeHTML(label)}" style="--stack-depth:${remaining.length * layerSpacing}px;--stack-last-delay:${lastDelay}ms">
+          <div class="pickup-stack-layers" aria-hidden="true">${layers.reverse().join('')}</div>
+          <div class="pickup-stack-surface">
+            <div class="pickup-stack-front">
+              <button class="pickup-stack-toggle" type="button" aria-expanded="${expanded}" aria-controls="${bodyId}">
+                <span class="pickup-group-header">
+                  ${header}
+                  <svg class="pickup-stack-chevron" aria-hidden="true"><use href="#icon-chevron-right"/></svg>
+                </span>
+              </button>
+              ${renderItem(items[0])}
+            </div>
+            <div class="pickup-stack-body" id="${bodyId}"${expanded ? '' : ' inert'}>
+              ${rows.join('')}
+            </div>
+          </div>
+        </section>`;
+      }
+      return `<section class="pickup-group">
+        <div class="pickup-group-header">${header}</div>
+        ${items.map(renderItem).join('')}
+      </section>`;
     }).join('');
     renderHistory();
     syncClipboardBannerVisibility();
@@ -1147,6 +1206,13 @@
 
   $('#code-list').addEventListener('click', event => {
     const button = event.target.closest('button[data-action]');
+    const toggle = !button && event.target.closest('.pickup-stack-front')?.querySelector('.pickup-stack-toggle');
+    if (toggle) {
+      const expanded = toggle.closest('.pickup-stack').classList.toggle('is-expanded');
+      toggle.setAttribute('aria-expanded', String(expanded));
+      document.getElementById(toggle.getAttribute('aria-controls')).toggleAttribute('inert', !expanded);
+      return;
+    }
     if (!button) return;
     const item = codes.find(code => code.id === button.dataset.id);
     if (!item) return;
